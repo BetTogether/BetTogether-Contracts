@@ -1,4 +1,5 @@
 usePlugin("@nomiclabs/buidler-waffle");
+usePlugin("@nomiclabs/buidler-truffle5");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -17,6 +18,6 @@ task("accounts", "Prints the list of accounts", async () => {
 module.exports = {
   // This is a sample solc configuration that specifies which version of solc to use
   solc: {
-    version: "0.5.15",
+    version: "0.6.6",
   },
 };
