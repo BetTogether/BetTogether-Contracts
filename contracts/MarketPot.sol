@@ -10,7 +10,6 @@ import "./interfaces/IAave.sol";
 import "./interfaces/IDai.sol";
 import "./interfaces/IRealitio.sol";
 
-
 contract MarketPot is ERC20, Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
 
@@ -32,7 +31,7 @@ contract MarketPot is ERC20, Ownable, Pausable, ReentrancyGuard {
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
     IAaveLendingPoolCore public aaveLendingPoolCore;
-    Realitio public realitio;
+    IRealitio public realitio;
 
     // Market
     uint256 public marketOpeningTime; // when the market is opened for bets
@@ -66,7 +65,7 @@ contract MarketPot is ERC20, Ownable, Pausable, ReentrancyGuard {
         IaToken _aTokenAddress,
         IAaveLendingPool _aaveLpAddress,
         IAaveLendingPoolCore _aaveLpcoreAddress,
-        Realitio _realitioAddress,
+        IRealitio _realitioAddress,
         uint256 _marketOpeningTime,
         uint32 _marketResolutionTime,
         address _owner
@@ -91,7 +90,7 @@ contract MarketPot is ERC20, Ownable, Pausable, ReentrancyGuard {
         uint256 template_id = 2;
 
 
-            string memory question
+        string memory question
          = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
         address arbitrator = 0xA6EAd513D05347138184324392d8ceb24C116118; // placeholder, to change
         uint32 timeout = 86400; // how long the market can be disputed on realitio after an answer has been submitted, 24 hours
