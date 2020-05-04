@@ -55,6 +55,7 @@ contract MarketPotFactory is Ownable, Pausable {
         uint32 _marketResolutionTime,
         address _arbitrator,
         string memory _eventName,
+        uint _numberOfOutcomes
     )
         public
         onlyOwner
@@ -71,6 +72,7 @@ contract MarketPotFactory is Ownable, Pausable {
             _marketResolutionTime: _marketResolutionTime,
             _arbitrator: _arbitrator,
             _eventName: _eventName,
+            _numberOfOutcomes: _numberOfOutcomes,
             _owner: msg.sender});
 
         address newAddress = address(newContract);

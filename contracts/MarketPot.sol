@@ -16,17 +16,6 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// VARIABLES /////////////////
     ////////////////////////////////////
-    address[] public participants;
-    mapping(address => mapping(uint => uint)) public balances;
-    uint public winningOutcome = 69; // start with incorrect winning outcome
-    uint public numberOfOutcomes; // this needs to be sent in the constructor, TODO
-    uint public totalBet;
-    uint public totalWithdrawn;
-    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
-    States public state; // 
-
-    // Testing
-    uint public a;
 
     //////// Externals ////////
     Dai public dai;
@@ -42,33 +31,21 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     bytes32 public questionId; // the question ID of the question on realitio
     string public eventName;
     mapping (uint => string) public eventOutcomes;
-    string public eventCategory;
+    uint public numberOfOutcomes; 
 
-    ////////////////////////////////////
-    //////// MODIFIERS /////////////////
-    ////////////////////////////////////
-    modifier checkState(States currentState) {
-        require(
-            state == currentState,
-            "function cannot be called at this time"
-        );
-        _;
-    }
+    //////// Betting variables ////////
+    mapping(address => mapping(uint => uint)) public balances;
+    mapping(uint => uint) public totalBetPerOutcome;
+    uint public totalBet;
+    address[] public participants;
+    mapping (address => bool) withdrawnBool; //so users can only withdraw once
+    uint public winningOutcome = 69; // start with incorrect winning outcome
+    uint public totalWithdrawn;
+    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
+    States public state; // 
 
-    ////////////////////////////////////
-    //////// EVENTS ////////////////////
-    ////////////////////////////////////
-    event ParticipantEntered(address indexed participant);
-    event StateChanged(States state);
-    event WinnerSelected(address indexed winner);
-
-    ////////////////////////////////////
-    //////// VIEW FUNCTIONS ////////////
-    ////////////////////////////////////
-    function getMarketSize() public view returns (uint) {
-        return participants.length;
-    }
-
+    // Testing
+    uint public a;
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -83,6 +60,7 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         uint32 _marketResolutionTime,
         address _arbitrator,
         string memory _eventName,
+        uint _numberOfOutcomes,
         address _owner
     ) public {
         if (_owner != msg.sender) {
@@ -101,8 +79,11 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         marketLockingTime = _marketOpeningTime.add(604800); // one week
         marketResolutionTime = _marketResolutionTime;
         eventName = _eventName;
-        // Eventually we also need to pass the outcomes but I got 
-        // ... "stack too deep, try using fewer variables" errors when I tried this
+        numberOfOutcomes = _numberOfOutcomes;
+        // We need to get the below from an argument eventually
+        // ... but I'm getting "Stack too deep, try using fewer variables" error
+        eventOutcomes[0] = "Donald Trump";
+        eventOutcomes[1] = "Joe Biden";
 
         // Create the question on Realitio
         uint _templateId = 2;
@@ -119,6 +100,55 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
             _marketResolutionTime,
             _nonce
         );
+    }
+
+    ////////////////////////////////////
+    //////// EVENTS ////////////////////
+    ////////////////////////////////////
+    event ParticipantEntered(address indexed participant);
+    event StateChanged(States state);
+    event WinnerSelected(address indexed winner);
+
+
+    ////////////////////////////////////
+    ////////// VIEW FUNCTIONS //////////
+    ////////////////////////////////////
+    function getMarketSize() public view returns (uint) {
+        return participants.length;
+    }
+
+    function getUserBet(uint _outcome) public view returns (uint) {
+        return balances[msg.sender][_outcome];
+    }
+
+    /// @dev returns total winnings for a user based on current accumulated interest
+    /// @dev ... and assuming the passed _outcome wins. 
+    function getWinnings(uint _outcome) public view returns (uint) {
+        uint _winnings;
+        uint _amountBetOnOutcome = balances[msg.sender][_outcome];
+        if (_amountBetOnOutcome > 0) {
+            uint _remainingPrincipal = totalBet.sub(totalWithdrawn);
+            uint _totalAdaibalances = aToken.balanceOf(address(this)); 
+            uint _totalInterest = _totalAdaibalances.sub(_remainingPrincipal);
+            _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingPrincipal);
+        }
+        return _winnings;
+    }
+
+    // need the interest rate for this
+    // function getEstimatedReturn(uint _outcome) returns (uint) {
+    //     uint _timeLocked = marketResolutionTime.
+    // }
+
+    ////////////////////////////////////
+    //////// MODIFIERS /////////////////
+    ////////////////////////////////////
+    modifier checkState(States currentState) {
+        require(
+            state == currentState,
+            "function cannot be called at this time"
+        );
+        _;
     }
 
     ////////////////////////////////////
@@ -147,7 +177,7 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice gets the winning outcome from realitio
     /// @dev this function call will revert if it has not yet resolved
-    function _getWinner() internal view returns(uint) {
+    function _determineWinner() internal view returns(uint) {
         bytes32 _winningOutcome = realitio.resultFor(questionId);
         return uint(_winningOutcome);
     }
@@ -174,7 +204,7 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     }
 
     ////////////////////////////////////
-    //////// EXTERNAL FUNCTIONS ///////////
+    //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
 
     function placeBet(uint _outcome, uint _dai)
@@ -184,17 +214,19 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     {
         if (balances[msg.sender][_outcome] == 0) participants.push(msg.sender);
         emit ParticipantEntered(msg.sender);
+        // increment three variables- balances, totalBet, totalBetPerOutcome
         balances[msg.sender][_outcome] = balances[msg.sender][_outcome].add(_dai);
         totalBet = totalBet.add(_dai);
+        totalBetPerOutcome[_outcome] = totalBetPerOutcome[_outcome].add(_dai);
         _receiveCash(msg.sender, _dai);
     }
 
-    function getWinner() 
+    function determineWinner() 
         external
         whenNotPaused
     {
         require(_isQuestionFinalized(), "Oracle has not finalised");
-        winningOutcome = _getWinner();
+        winningOutcome = _determineWinner();
         incrementState();
     }
 
@@ -211,28 +243,41 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         emit StateChanged(state);
     }
 
-    // this is NOT finished, I think I need to subtract withdrawals from totalBet
     function withdraw()
         external
         checkState(States.WITHDRAW)
         whenNotPaused
     {
+        require(!withdrawnBool[msg.sender], "Already withdrawn");
+        withdrawnBool[msg.sender] = true;
+        // first, return user's original bet
+        _returnBet();
+        // get winnings
+        uint _winnings = getWinnings(winningOutcome);
+        if (_winnings > 0) {
+            // effects
+            totalWithdrawn = totalWithdrawn.add(_winnings); 
+            // interaction
+            aToken.redeem(_winnings);
+            _sendCash(msg.sender, _winnings);
+        }
+    }
+
+    ////////////////////////////////////
+    //////// INTERNAL FUNCTIONS ////////
+    ////////////////////////////////////
+    function _returnBet() 
+        internal 
+    {
         for (uint i = 0; i < numberOfOutcomes; i++) 
         {
             uint _amountBetOnOutcome = balances[msg.sender][i];
-            balances[msg.sender][i] = 0; //otherwise users could withdraw over and over
             if (_amountBetOnOutcome > 0) {
+                // effects
+                totalWithdrawn = totalWithdrawn.add(_amountBetOnOutcome);
+                // interactions
                 aToken.redeem(_amountBetOnOutcome);
                 _sendCash(msg.sender, _amountBetOnOutcome);
-                if (winningOutcome == i) {
-                    uint _remainingBalance = totalBet.sub(totalWithdrawn);
-                    uint _totalAdaibalances = aToken.balanceOf(address(this)); 
-                    uint _totalInterest = _totalAdaibalances.sub(_remainingBalance);
-                    uint _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingBalance);
-                    totalWithdrawn = totalWithdrawn.add(_winnings);
-                    aToken.redeem(_winnings);
-                    _sendCash(msg.sender, _winnings);
-                }
             }
         }
     }
