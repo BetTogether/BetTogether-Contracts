@@ -16,31 +16,33 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// VARIABLES /////////////////
     ////////////////////////////////////
-    uint public creationTime;
-    uint public marketPotbalances;
     address[] public participants;
     mapping(address => mapping(uint => uint)) public balances;
-    uint public totalBet;
-    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
-    States public state;
     uint public winningOutcome = 69; // start with incorrect winning outcome
-    uint public numberOfOutcomes; //this needs to be sent in the constructor, TODO
+    uint public numberOfOutcomes; // this needs to be sent in the constructor, TODO
+    uint public totalBet;
+    uint public totalWithdrawn;
+    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
+    States public state; // 
 
     // Testing
     uint public a;
 
-    // Externals
+    //////// Externals ////////
     Dai public dai;
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
     IAaveLendingPoolCore public aaveLendingPoolCore;
     IRealitio public realitio;
 
-    // Market
+    //////// Market Details ////////
     uint public marketOpeningTime; // when the market is opened for bets
     uint public marketLockingTime; // when the market is no longer open for bets
     uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
     bytes32 public questionId; // the question ID of the question on realitio
+    string public eventName;
+    mapping (uint => string) public eventOutcomes;
+    string public eventCategory;
 
     ////////////////////////////////////
     //////// MODIFIERS /////////////////
@@ -79,12 +81,14 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         IRealitio _realitioAddress,
         uint _marketOpeningTime,
         uint32 _marketResolutionTime,
+        address _arbitrator,
+        string memory _eventName,
         address _owner
     ) public {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
         }
-        state = States.OPEN;
+
         // Externals
         dai = _daiAddress;
         aToken = _aTokenAddress;
@@ -96,22 +100,24 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         marketOpeningTime = _marketOpeningTime;
         marketLockingTime = _marketOpeningTime.add(604800); // one week
         marketResolutionTime = _marketResolutionTime;
+        eventName = _eventName;
+        // Eventually we also need to pass the outcomes but I got 
+        // ... "stack too deep, try using fewer variables" errors when I tried this
 
         // Create the question on Realitio
-        uint template_id = 2;
-        string memory question
-         = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
-        address arbitrator = 0xA6EAd513D05347138184324392d8ceb24C116118; // placeholder, to change
-        uint32 timeout = 86400; // how long the market can be disputed on realitio after an answer has been submitted, 24 hours
-        uint32 opening_ts = _marketResolutionTime;
-        uint nonce = 0;
+        uint _templateId = 2;
+        // ultimately this needs to be created from the input arguments (i.e. concatenated):
+        string memory _question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
+        // timeout = how long the market can be disputed on realitio after an answer has been submitted, 24 hours
+        uint _nonce = 0;
+        uint32 _timeout = 86400;
         questionId = _postQuestion(
-            template_id,
-            question,
-            arbitrator,
-            timeout,
-            opening_ts,
-            nonce
+            _templateId,
+            _question,
+            _arbitrator,
+            _timeout,
+            _marketResolutionTime,
+            _nonce
         );
     }
 
@@ -168,7 +174,7 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
     }
 
     ////////////////////////////////////
-    //////// OTHER FUNCTIONS ///////////
+    //////// EXTERNAL FUNCTIONS ///////////
     ////////////////////////////////////
 
     function placeBet(uint _outcome, uint _dai)
@@ -211,20 +217,22 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         checkState(States.WITHDRAW)
         whenNotPaused
     {
-        uint _totalAdaibalances = aToken.balanceOf(address(this)); 
         for (uint i = 0; i < numberOfOutcomes; i++) 
         {
             uint _amountBetOnOutcome = balances[msg.sender][i];
+            balances[msg.sender][i] = 0; //otherwise users could withdraw over and over
             if (_amountBetOnOutcome > 0) {
                 aToken.redeem(_amountBetOnOutcome);
                 _sendCash(msg.sender, _amountBetOnOutcome);
                 if (winningOutcome == i) {
-                    uint _totalInterest = _totalAdaibalances.sub(totalBet);
-                    uint _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(totalBet);
+                    uint _remainingBalance = totalBet.sub(totalWithdrawn);
+                    uint _totalAdaibalances = aToken.balanceOf(address(this)); 
+                    uint _totalInterest = _totalAdaibalances.sub(_remainingBalance);
+                    uint _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingBalance);
+                    totalWithdrawn = totalWithdrawn.add(_winnings);
                     aToken.redeem(_winnings);
                     _sendCash(msg.sender, _winnings);
                 }
-                balances[msg.sender][i] = 0;
             }
         }
     }

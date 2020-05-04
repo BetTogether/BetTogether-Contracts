@@ -51,11 +51,13 @@ contract MarketPotFactory is Ownable, Pausable {
     }
 
     function createMarket(
-        uint256 _marketOpeningTime,
-        uint32 _marketResolutionTime
+        uint _marketOpeningTime,
+        uint32 _marketResolutionTime,
+        address _arbitrator,
+        string memory _eventName,
     )
         public
-        payable
+        onlyOwner
         whenNotPaused
         returns (MarketPot)
     {
@@ -67,6 +69,8 @@ contract MarketPotFactory is Ownable, Pausable {
             _realitioAddress: realitio, 
             _marketOpeningTime: _marketOpeningTime,
             _marketResolutionTime: _marketResolutionTime,
+            _arbitrator: _arbitrator,
+            _eventName: _eventName,
             _owner: msg.sender});
 
         address newAddress = address(newContract);
