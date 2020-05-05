@@ -1,8 +1,10 @@
 require("dotenv").config();
 const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-const INFURA_ID = process.env.INFURA_KEY;
-const MNEMONIC = process.env.MNEMONIC;
+// const INFURA_ID = process.env.INFURA_KEY;
+// const MNEMONIC = process.env.MNEMONIC;
+const INFURA_ID = 'd460ac4e71f24d869c8b75119ebe4213';
+const MNEMONIC = 'manual common build dilemma episode air casino time magnet equal curve slice';
 
 module.exports = {
   plugins: ["truffle-security"],
@@ -61,7 +63,7 @@ module.exports = {
         );
       },
       network_id: 42,
-      gas: 15000000,
+      gas: 9990236,
     },
   },
   compilers: {

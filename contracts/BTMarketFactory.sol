@@ -55,7 +55,8 @@ contract BTMarketFactory is Ownable, Pausable {
         uint32 _marketResolutionTime,
         address _arbitrator,
         string memory _eventName,
-        uint _numberOfOutcomes
+        uint _numberOfOutcomes,
+        uint32 _timeout
     )
         public
         onlyOwner
@@ -73,7 +74,9 @@ contract BTMarketFactory is Ownable, Pausable {
             _arbitrator: _arbitrator,
             _eventName: _eventName,
             _numberOfOutcomes: _numberOfOutcomes,
-            _owner: msg.sender});
+            _timeout: _timeout,
+            _owner: msg.sender,
+            _testMode: true});
 
         address newAddress = address(newContract);
         marketPots.push(newAddress);

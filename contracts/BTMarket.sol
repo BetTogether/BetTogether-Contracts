@@ -32,6 +32,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     string public eventName;
     mapping (uint => string) public eventOutcomes;
     uint public numberOfOutcomes; 
+    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
+    States public state; 
+    bool public testMode;
 
     //////// Betting variables ////////
     mapping(address => mapping(uint => uint)) public balances;
@@ -41,11 +44,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     mapping (address => bool) withdrawnBool; //so users can only withdraw once
     uint public winningOutcome = 69; // start with incorrect winning outcome
     uint public totalWithdrawn;
-    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
-    States public state; // 
-
-    // Testing
-    uint public a;
+    
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -61,7 +60,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         address _arbitrator,
         string memory _eventName,
         uint _numberOfOutcomes,
-        address _owner
+        uint32 _timeout,
+        address _owner,
+        bool _testMode
     ) public {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
@@ -74,12 +75,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         aaveLendingPoolCore = _aaveLpcoreAddress;
         realitio = _realitioAddress;
 
+        // Approvals
+        dai.approve(address(aaveLendingPoolCore), 2**255);
+
         // Pass arguments to public variables
         marketOpeningTime = _marketOpeningTime;
-        marketLockingTime = _marketOpeningTime.add(604800); // one week
+        if (_testMode) {
+            marketLockingTime = _marketOpeningTime;
+        } else {
+            marketLockingTime = _marketOpeningTime.add(604800); // one week 
+        }
         marketResolutionTime = _marketResolutionTime;
         eventName = _eventName;
         numberOfOutcomes = _numberOfOutcomes;
+        testMode = _testMode;
         // We need to get the below from an argument eventually
         // ... but I'm getting "Stack too deep, try using fewer variables" error
         eventOutcomes[0] = "Donald Trump";
@@ -90,8 +99,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         // ultimately this needs to be created from the input arguments (i.e. concatenated):
         string memory _question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
         // timeout = how long the market can be disputed on realitio after an answer has been submitted, 24 hours
-        uint _nonce = 0;
-        uint32 _timeout = 86400;
+        uint _nonce = 1;
+        // uint32 _timeout = 86400;
         questionId = _postQuestion(
             _templateId,
             _question,
@@ -209,6 +218,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         require(dai.transferFrom(_from, address(this), _amount), "Cash transfer failed");
     }
 
+    // * internal * 
+    /// @notice mints Dai, will only work on a testnet
+    function _mintCash(uint _amount) internal {  
+        dai.mint(_amount); 
+    }
+
     ////////////////////////////////////
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
@@ -224,7 +239,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         balances[msg.sender][_outcome] = balances[msg.sender][_outcome].add(_dai);
         totalBet = totalBet.add(_dai);
         totalBetPerOutcome[_outcome] = totalBetPerOutcome[_outcome].add(_dai);
-        _receiveCash(msg.sender, _dai);
+        if (testMode) {
+            _mintCash(_dai);
+        } else {
+            _receiveCash(msg.sender, _dai);
+        }
+        aaveLendingPool.deposit(address(dai), _dai, 0);
     }
 
     function determineWinner() 
@@ -241,13 +261,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         public 
         whenNotPaused 
     {
-        if(((state == States.WAITING) && (marketOpeningTime > now)) ||  
-           ((state == States.OPEN) && (marketLockingTime > now)) || 
+        if(((state == States.WAITING) && (marketOpeningTime < now)) ||  
+           ((state == States.OPEN) && (marketLockingTime < now)) || 
            ((state == States.LOCKED) && (winningOutcome != 69)) )
         {
             state = States(uint(state) + 1);
+            emit StateChanged(state);
         }
-        emit StateChanged(state);
     }
 
     function withdraw()

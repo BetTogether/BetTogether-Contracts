@@ -10,13 +10,15 @@ const aaveLendingPoolAddressKovan = '0x580D4Fdc4BF8f9b5ae2fb9225D584fED4AD5375c'
 const aaveLendingPoolCoreAddressKovan = '0x95D1189Ed88B380E319dF73fF00E479fcc4CFa45';
 const realitioAddressKovan = '0x50E35A1ED424aB9C0B8C7095b3d9eC2fb791A168';
 
-// market details
+// market details DUMMY/TESTING DATA ONLY, NOT FOR MAINNET
 const marketOpeningTime = 0;
 const marketResolutionTime = 0;
-const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; //random address, to change
+const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; 
 const eventName = "US 2020 General Election";
 const numberOfOutcomes = 2;
-const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; //to change
+const timeout = 60; 
+const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; 
+// const nonce
 
 // Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
 module.exports = function (deployer, network) {
@@ -38,7 +40,9 @@ module.exports = function (deployer, network) {
               arbitrator,
               eventName,
               numberOfOutcomes,
-              owner
+              timeout,
+              owner,
+              true
             );
           });
         });
@@ -46,17 +50,19 @@ module.exports = function (deployer, network) {
   } else if (network === "kovan") {
     deployer.deploy(
         BTMarket,
-        deployedDai.address,
-        deployedaToken.address,
-        deployedaToken.address,
-        deployedaToken.address,
-        deployedRealitio.address,
+        aaveCashAddressKovan,
+        aaveAtokenAddressKovan,
+        aaveLendingPoolAddressKovan,
+        aaveLendingPoolCoreAddressKovan,
+        realitioAddressKovan,
         marketOpeningTime,
         marketResolutionTime,
         arbitrator,
         eventName,
         numberOfOutcomes,
-        owner
+        timeout,
+        owner,
+        true
       );
   }
 };
