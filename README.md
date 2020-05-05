@@ -13,6 +13,13 @@
 
 ## Installation
 
+### Environment Variables
+
+1. Inside the root directory, create a `.env` file.
+2. Copy and paste the contents from `.env.example` into the .env file.
+3. Fill out the corresponding variables with your credientials.
+4. Verify .env is in your .gitignore
+
 ## Usage
 
 ## Issues
