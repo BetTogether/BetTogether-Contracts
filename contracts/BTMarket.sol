@@ -10,7 +10,7 @@ import "./interfaces/IAave.sol";
 import "./interfaces/IDai.sol";
 import "./interfaces/IRealitio.sol";
 
-contract MarketPot is Ownable, Pausable, ReentrancyGuard {
+contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint;
 
     ////////////////////////////////////
@@ -121,15 +121,21 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         return balances[msg.sender][_outcome];
     }
 
+    function getTotalInterest() public view returns (uint) {
+        uint _remainingPrincipal = totalBet.sub(totalWithdrawn);
+        uint _totalAdaibalances = aToken.balanceOf(address(this)); 
+        uint _totalInterest = _totalAdaibalances.sub(_remainingPrincipal);
+        return _totalInterest;
+    }
+
     /// @dev returns total winnings for a user based on current accumulated interest
     /// @dev ... and assuming the passed _outcome wins. 
     function getWinnings(uint _outcome) public view returns (uint) {
         uint _winnings;
         uint _amountBetOnOutcome = balances[msg.sender][_outcome];
         if (_amountBetOnOutcome > 0) {
+            uint _totalInterest = getTotalInterest();
             uint _remainingPrincipal = totalBet.sub(totalWithdrawn);
-            uint _totalAdaibalances = aToken.balanceOf(address(this)); 
-            uint _totalInterest = _totalAdaibalances.sub(_remainingPrincipal);
             _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingPrincipal);
         }
         return _winnings;
@@ -230,6 +236,7 @@ contract MarketPot is Ownable, Pausable, ReentrancyGuard {
         incrementState();
     }
 
+    // keep this public as it's called by determineWinner
     function incrementState() 
         public 
         whenNotPaused 

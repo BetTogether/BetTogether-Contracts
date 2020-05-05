@@ -4,12 +4,12 @@ pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./MarketPot.sol";
+import "./BTMarket.sol";
 import "./interfaces/IAave.sol";
 import "./interfaces/IDai.sol";
 import "./interfaces/IRealitio.sol";
 
-contract MarketPotFactory is Ownable, Pausable {
+contract BTMarketFactory is Ownable, Pausable {
 
     ////////////////////////////////////
     //////// VARIABLES /////////////////
@@ -60,9 +60,9 @@ contract MarketPotFactory is Ownable, Pausable {
         public
         onlyOwner
         whenNotPaused
-        returns (MarketPot)
+        returns (BTMarket)
     {
-        MarketPot newContract = new MarketPot({
+        BTMarket newContract = new BTMarket({
             _daiAddress: dai,
             _aTokenAddress: aToken, 
             _aaveLpAddress: aaveLendingPool, 
@@ -96,6 +96,6 @@ contract MarketPotFactory is Ownable, Pausable {
         createdByThisFactory(potAddress)
         returns (bool)
     {
-        return MarketPot(potAddress).disableContract();
+        return BTMarket(potAddress).disableContract();
     }
 }
