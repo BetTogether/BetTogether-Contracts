@@ -9,11 +9,20 @@ const {
 
 const DaiMockup = artifacts.require("DaiMockup");
 const aTokenMockup = artifacts.require("aTokenMockup");
-const BetTogether = artifacts.require("BetTogether");
+const BetTogether = artifacts.require("BTMarket");
+const RealitioMockup = artifacts.require("RealitioMockup.sol");
+
+const marketOpeningTime = 0;
+const marketResolutionTime = 0;
+const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; 
+const eventName = "US 2020 General Election";
+const numberOfOutcomes = 2;
+const timeout = 10; 
+const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; 
+
 
 contract('BetTogetherTests', (accounts) => {
 
-  user = accounts[0];
   user0 = accounts[0];
   user1 = accounts[1];
   user2 = accounts[2];
@@ -27,15 +36,30 @@ contract('BetTogetherTests', (accounts) => {
   beforeEach(async () => {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
-    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, aToken.address);
+    realitio = await RealitioMockup.new();
+    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, aToken.address, realitio.address, marketOpeningTime, marketResolutionTime, arbitrator, eventName, numberOfOutcomes, timeout, owner, true);
   });
 
-  it('setA', async () => {
-    var a = await betTogether.a.call();
-    assert.equal(a,0);
-    await betTogether.testFunction(3);
-    var a = await betTogether.a.call();
-    assert.equal(a,3);
+  it('test', async () => {
+    await betTogether.incrementState();
+    await betTogether.placeBet(0,web3.utils.toWei('100', 'ether'), {from: user0});
+    await betTogether.placeBet(1,web3.utils.toWei('200', 'ether'), {from: user1});
+    await aToken.generate10PercentInterest(betTogether.address);
+    await betTogether.incrementState();
+    await realitio.setResult(1);
+    await betTogether.determineWinner();
+    await betTogether.withdraw({from: user0});
+    var depositReturned = await dai.balanceOf(user0);
+    assert.equal(depositReturned,web3.utils.toWei('100', 'ether'));
+    // check totalBet and totalWithdrawn
+    var totalBet = await betTogether.totalBet.call();
+    assert.equal(totalBet,web3.utils.toWei('300', 'ether'))
+    var totalWithdrawn = await betTogether.totalWithdrawn.call();
+    assert.equal(totalWithdrawn,web3.utils.toWei('100', 'ether'))
+    //
+    await betTogether.withdraw({from: user1});
+    var depositReturned = await dai.balanceOf(user1);
+    assert.equal(depositReturned,web3.utils.toWei('230', 'ether'));
   });
 
 });

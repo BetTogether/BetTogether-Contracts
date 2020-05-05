@@ -99,7 +99,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         // ultimately this needs to be created from the input arguments (i.e. concatenated):
         string memory _question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
         // timeout = how long the market can be disputed on realitio after an answer has been submitted, 24 hours
-        uint _nonce = 1;
+        uint _nonce = now; // <- should probably change this to zero for mainnet
         // uint32 _timeout = 86400;
         questionId = _postQuestion(
             _templateId,
@@ -144,8 +144,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         uint _amountBetOnOutcome = balances[msg.sender][_outcome];
         if (_amountBetOnOutcome > 0) {
             uint _totalInterest = getTotalInterest();
+            // console.log(totalBet);
+            // console.log(totalWithdrawn);
             uint _remainingPrincipal = totalBet.sub(totalWithdrawn);
-            _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingPrincipal);
+            if (_remainingPrincipal > 0) {
+                _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(_remainingPrincipal);
+            }
         }
         return _winnings;
     }
@@ -277,17 +281,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     {
         require(!withdrawnBool[msg.sender], "Already withdrawn");
         withdrawnBool[msg.sender] = true;
-        // first, return user's original bet
-        _returnBet();
-        // get winnings
+        // first, send winnings, if any
         uint _winnings = getWinnings(winningOutcome);
         if (_winnings > 0) {
-            // effects
-            totalWithdrawn = totalWithdrawn.add(_winnings); 
-            // interaction
             aToken.redeem(_winnings);
             _sendCash(msg.sender, _winnings);
         }
+        // second, return user's original bet
+        _returnBet();
     }
 
     ////////////////////////////////////

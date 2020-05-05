@@ -16,9 +16,8 @@ const marketResolutionTime = 0;
 const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; 
 const eventName = "US 2020 General Election";
 const numberOfOutcomes = 2;
-const timeout = 60; 
+const timeout = 10; 
 const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; 
-// const nonce
 
 // Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
 module.exports = function (deployer, network) {
