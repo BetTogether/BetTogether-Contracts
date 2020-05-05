@@ -3,8 +3,9 @@ const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 // const INFURA_ID = process.env.INFURA_KEY;
 // const MNEMONIC = process.env.MNEMONIC;
-const INFURA_ID = 'd460ac4e71f24d869c8b75119ebe4213';
-const MNEMONIC = 'manual common build dilemma episode air casino time magnet equal curve slice';
+const INFURA_ID = "d460ac4e71f24d869c8b75119ebe4213";
+const MNEMONIC =
+  "manual common build dilemma episode air casino time magnet equal curve slice";
 
 module.exports = {
   plugins: ["truffle-security"],
@@ -68,7 +69,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: "0.6.6",
+      version: "0.6.7",
     },
   },
 };
