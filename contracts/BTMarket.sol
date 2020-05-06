@@ -42,7 +42,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   mapping(uint256 => uint256) public totalBetPerOutcome;
   uint256 public totalBet;
   address[] public participants;
-  mapping(address => bool) withdrawnBool; //so users can only withdraw once
+  mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
   uint256 public winningOutcome = 69; // start with incorrect winning outcome
   uint256 public totalWithdrawn;
 
@@ -67,7 +67,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     if (_owner != msg.sender) {
       transferOwnership(_owner);
     }
-
     // Externals
     dai = _daiAddress;
     aToken = _aTokenAddress;
@@ -98,6 +97,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 _templateId = 2;
     // ultimately this needs to be created from the input arguments (i.e. concatenated):
 
+
       string memory _question
      = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
     // timeout = how long the market can be disputed on realitio after an answer has been submitted, 24 hours
@@ -117,8 +117,17 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   //////// EVENTS ////////////////////
   ////////////////////////////////////
   event ParticipantEntered(address indexed participant);
+  event ParticipantWithdrawn(address indexed participant);
   event StateChanged(States state);
   event WinnerSelected(address indexed winner);
+
+  ////////////////////////////////////
+  //////// MODIFIERS /////////////////
+  ////////////////////////////////////
+  modifier checkState(States currentState) {
+    require(state == currentState, "function cannot be called at this time");
+    _;
+  }
 
   ////////////////////////////////////
   ////////// VIEW FUNCTIONS //////////
@@ -127,7 +136,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     return participants.length;
   }
 
-  function getUserBet(uint256 _outcome) public view returns (uint256) {
+  function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
     return balances[msg.sender][_outcome];
   }
 
@@ -138,7 +147,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     return _totalInterest;
   }
 
-  /// @dev returns total winnings for a user based on current accumulated interest
+  /// @dev Returns total winnings for a participant based on current accumulated interest
   /// @dev ... and assuming the passed _outcome wins.
   function getWinnings(uint256 _outcome) public view returns (uint256) {
     uint256 _winnings;
@@ -161,14 +170,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   // function getEstimatedReturn(uint _outcome) returns (uint) {
   //     uint _timeLocked = marketResolutionTime.
   // }
-
-  ////////////////////////////////////
-  //////// MODIFIERS /////////////////
-  ////////////////////////////////////
-  modifier checkState(States currentState) {
-    require(state == currentState, "function cannot be called at this time");
-    _;
-  }
 
   ////////////////////////////////////
   //////// REALIITO FUNCTIONS ////////
@@ -234,7 +235,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   //////// EXTERNAL FUNCTIONS ////////
   ////////////////////////////////////
-
   function placeBet(uint256 _outcome, uint256 _dai)
     external
     checkState(States.OPEN)
@@ -272,7 +272,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
   }
 
-  function withdraw() external checkState(States.WITHDRAW) whenNotPaused {
+  function withdraw()
+    external
+    checkState(States.WITHDRAW)
+    whenNotPaused
+    nonReentrant
+  {
     require(!withdrawnBool[msg.sender], "Already withdrawn");
     withdrawnBool[msg.sender] = true;
     // first, send winnings, if any
@@ -281,7 +286,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
       aToken.redeem(_winnings);
       _sendCash(msg.sender, _winnings);
     }
-    // second, return user's original bet
+    // second, return pariticpant's original bet
     _returnBet();
   }
 
@@ -304,7 +309,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   ///// BOILERPLATE FUNCTIONS ////////
   ////////////////////////////////////
-
   function disableContract() public onlyOwner returns (bool) {
     _pause();
   }

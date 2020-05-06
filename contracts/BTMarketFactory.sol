@@ -9,24 +9,21 @@ import "./interfaces/IRealitio.sol";
 
 
 contract BTMarketFactory is Ownable, Pausable {
-  ////////////////////////////////////
-  //////// VARIABLES /////////////////
-  ////////////////////////////////////
-
-  // Externals
   Dai public dai;
   IaToken public aToken;
   IAaveLendingPool public aaveLendingPool;
   IAaveLendingPoolCore public aaveLendingPoolCore;
   IRealitio public realitio;
+  mapping(address => bool) public mappingOfMarkets;
+  address[] public markets;
 
-  mapping(address => bool) mappingOfMarketPots;
-  address[] public marketPots;
+  event MarketCreated(address contractAddress);
 
-  event MarketPotCreated(address contractAddress);
-
-  modifier createdByThisFactory(address potAddr) {
-    require(mappingOfMarketPots[potAddr], "Must be created by this factory");
+  modifier createdByThisFactory(address marketAddress) {
+    require(
+      mappingOfMarkets[marketAddress],
+      "Must've been created by the corresponding factory"
+    );
     _;
   }
 
@@ -37,7 +34,6 @@ contract BTMarketFactory is Ownable, Pausable {
     IAaveLendingPoolCore _aaveLpcoreAddress,
     IRealitio _realitioAddress
   ) public {
-    // Externals
     dai = _daiAddress;
     aToken = _aTokenAddress;
     aaveLendingPool = _aaveLpAddress;
@@ -70,26 +66,26 @@ contract BTMarketFactory is Ownable, Pausable {
     });
 
     address newAddress = address(newContract);
-    marketPots.push(newAddress);
-    mappingOfMarketPots[newAddress] = true;
-    emit MarketPotCreated(address(newAddress));
+    markets.push(newAddress);
+    mappingOfMarkets[newAddress] = true;
+    emit MarketCreated(address(newAddress));
     return newContract;
   }
 
-  function getMarketPots() public view returns (address[] memory) {
-    return marketPots;
+  function getMarkets() public view returns (address[] memory) {
+    return markets;
   }
 
   function destroy() public onlyOwner whenPaused {
     selfdestruct(msg.sender);
   }
 
-  function disableMarketPot(address payable potAddress)
+  function disableMarket(address payable marketAddress)
     public
     onlyOwner
-    createdByThisFactory(potAddress)
+    createdByThisFactory(marketAddress)
     returns (bool)
   {
-    return BTMarket(potAddress).disableContract();
+    return BTMarket(marketAddress).disableContract();
   }
 }
