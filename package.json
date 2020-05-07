@@ -2,6 +2,7 @@
   "name": "bettogether-contracts",
   "version": "1.0.0",
   "dependencies": {
+    "@openzeppelin/test-helpers": "^0.5.5",
     "@truffle/hdwallet-provider": "^1.0.35",
     "acorn": "^7.2.0",
     "dotenv": "^8.2.0",
