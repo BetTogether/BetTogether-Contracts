@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "dependencies": {
     "@openzeppelin/test-helpers": "^0.5.5",
-    "@truffle/contract": "^4.2.2",
     "@truffle/hdwallet-provider": "^1.0.34",
     "acorn": "^7.1.1",
     "dotenv": "^8.2.0",
