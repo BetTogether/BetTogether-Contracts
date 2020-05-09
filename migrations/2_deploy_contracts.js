@@ -1,4 +1,5 @@
 const BTMarket = artifacts.require("BTMarket.sol");
+const BTMarketFactory = artifacts.require("BTMarketFactory.sol");
 const DaiMockup = artifacts.require("DaiMockup");
 const aTokenMockup = artifacts.require("aTokenMockup");
 const RealitioMockup = artifacts.require("RealitioMockup.sol");
@@ -11,6 +12,7 @@ const aaveLendingPoolAddressKovan =
 const aaveLendingPoolCoreAddressKovan =
   "0x95D1189Ed88B380E319dF73fF00E479fcc4CFa45";
 const realitioAddressKovan = "0x50E35A1ED424aB9C0B8C7095b3d9eC2fb791A168";
+const daiAddressKovan = '0x50E35A1ED424aB9C0B8C7095b3d9eC2fb791A168';
 
 // market details DUMMY/TESTING DATA ONLY, NOT FOR MAINNET
 const marketOpeningTime = 0;
@@ -50,20 +52,12 @@ module.exports = function (deployer, network) {
     });
   } else if (network === "kovan") {
     deployer.deploy(
-      BTMarket,
-      aaveCashAddressKovan,
+      BTMarketFactory,
+      daiAddressKovan,
       aaveAtokenAddressKovan,
       aaveLendingPoolAddressKovan,
       aaveLendingPoolCoreAddressKovan,
-      realitioAddressKovan,
-      marketOpeningTime,
-      marketResolutionTime,
-      arbitrator,
-      eventName,
-      numberOfOutcomes,
-      timeout,
-      owner,
-      true
+      realitioAddressKovan
     );
   }
 };
