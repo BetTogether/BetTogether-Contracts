@@ -12,7 +12,7 @@ const aaveLendingPoolAddressKovan =
 const aaveLendingPoolCoreAddressKovan =
   "0x95D1189Ed88B380E319dF73fF00E479fcc4CFa45";
 const realitioAddressKovan = "0x50E35A1ED424aB9C0B8C7095b3d9eC2fb791A168";
-const daiAddressKovan = '0x50E35A1ED424aB9C0B8C7095b3d9eC2fb791A168';
+const daiAddressKovan = '0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD';
 
 // market details DUMMY/TESTING DATA ONLY, NOT FOR MAINNET
 const marketOpeningTime = 0;
