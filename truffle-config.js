@@ -62,7 +62,7 @@ module.exports = {
         );
       },
       network_id: 42,
-      gas: 15000000,
+      gas: 9000000,
     },
   },
   compilers: {
