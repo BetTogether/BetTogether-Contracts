@@ -1,23 +1,55 @@
 usePlugin("@nomiclabs/buidler-waffle");
 usePlugin("@nomiclabs/buidler-truffle5");
+require("dotenv").config();
+const path = require("path");
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+const INFURA_KEY = process.env.INFURA_KEY;
+const MNEMONIC = process.env.MNEMONIC;
 
-// This is a sample Buidler task. To learn how to create your own go to
-// https://buidler.dev/guides/create-task.html
-task("accounts", "Prints the list of accounts", async () => {
-  const accounts = await ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(await account.getAddress());
-  }
-});
-
-// You have to export an object to set up your config
-// This object can have the following optional entries:
-// defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
 module.exports = {
-  // This is a sample solc configuration that specifies which version of solc to use
+  defaultNetwork: "kovan",
+  networks: {
+    kovan: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://kovan.infura.io/v3/${INFURA_KEY}`
+        ),
+      chainId: 42,
+    },
+    ropsten: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://ropsten.infura.io/v3/${INFURA_KEY}`
+        ),
+      chainId: 3,
+    },
+    rinkeby: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://rinkeby.infura.io/v3/${INFURA_KEY}`
+        ),
+      chainId: 4,
+    },
+    goerli: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://goerli.infura.io/v3/${INFURA_KEY}`
+        ),
+      chainId: 5,
+    },
+  },
   solc: {
-    version: "0.6.6",
+    version: "0.6.7",
+    optimizer: {
+      enabled: true,
+    },
+  },
+  paths: {
+    sources: path.join(__dirname, "client/src/contracts"),
   },
 };

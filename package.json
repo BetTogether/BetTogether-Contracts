@@ -22,7 +22,7 @@
     "ethereum-waffle": "^2.5.0",
     "ethers": "^4.0.47",
     "prettier": "^2.0.5",
-    "prettier-plugin-solidity": "^1.0.0-alpha.49",
+    "prettier-plugin-solidity": "^1.0.0-alpha.51",
     "solc": "^0.6.7",
     "typescript": "^3.8.3"
   }
