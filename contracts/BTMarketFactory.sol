@@ -48,7 +48,7 @@ contract BTMarketFactory is Ownable, Pausable {
     string memory _eventName,
     uint256 _numberOfOutcomes,
     uint32 _timeout
-  ) public onlyOwner whenNotPaused returns (BTMarket) {
+  ) public /* onlyOwner TODO removed for development */ whenNotPaused returns (BTMarket) {
     BTMarket newContract = new BTMarket({
       _daiAddress: dai,
       _aTokenAddress: aToken,
@@ -64,7 +64,6 @@ contract BTMarketFactory is Ownable, Pausable {
       _owner: msg.sender,
       _testMode: true
     });
-
     address newAddress = address(newContract);
     markets.push(newAddress);
     mappingOfMarkets[newAddress] = true;

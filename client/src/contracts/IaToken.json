@@ -34,32 +34,32 @@
       "type": "function"
     }
   ],
-  "metadata": "{\"compiler\":{\"version\":\"0.6.6+commit.6c089d02\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"redeem\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/mcplums/Repos/BetTogether/contracts/interfaces/IAave.sol\":\"IaToken\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/mcplums/Repos/BetTogether/contracts/interfaces/IAave.sol\":{\"keccak256\":\"0x3921be5e633fb1ebc4e1dbb81a3a837a3ea72049afcf4d429a3d61803d25d50c\",\"urls\":[\"bzz-raw://f8dd09f1c8acdf2281c7714caf28d7bffd29bfed8c2e142b6a02a271d323b3e7\",\"dweb:/ipfs/QmYNLCDr6yZxjoFvrzAiTstCWr2gZAA7tSy2zV6me82RJf\"]}},\"version\":1}",
+  "metadata": "{\"compiler\":{\"version\":\"0.6.7+commit.b8d736ae\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"redeem\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/C/Users/mail/Personal/ETH-global/BetTogether-Contracts/contracts/interfaces/IAave.sol\":\"IaToken\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"/C/Users/mail/Personal/ETH-global/BetTogether-Contracts/contracts/interfaces/IAave.sol\":{\"keccak256\":\"0xbe2970253a07f84154d292b2ddb62d3acb99f7b77a70dbd7a3c518f4b7d86480\",\"urls\":[\"bzz-raw://ae22315274e2e0ab0ee58e0654dd88094bbb1f7b116dbf056f2b6b8f88564ef2\",\"dweb:/ipfs/Qmb92VVXUf4CQM7nR9ozpc7MqV1BFeyVVxW4Y6K4qRKSaQ\"]}},\"version\":1}",
   "bytecode": "0x",
   "deployedBytecode": "0x",
   "immutableReferences": {},
   "sourceMap": "",
   "deployedSourceMap": "",
-  "source": "pragma solidity >=0.4.21 <0.7.0;\n\n\ninterface IaToken \n{\n    function balanceOf(address _user) external view returns(uint);\n    function redeem(uint256 _amount) external;\n}\n\ninterface IAaveLendingPool \n{\n    function deposit( address _reserve, uint256 _amount, uint16 _referralCode) external;\n}\n\ninterface IAaveLendingPoolCore {}",
-  "sourcePath": "/Users/mcplums/Repos/BetTogether/contracts/interfaces/IAave.sol",
+  "source": "pragma solidity >=0.4.21 <0.7.0;\r\n\r\n\r\ninterface IaToken {\r\n  function balanceOf(address _user) external view returns (uint256);\r\n\r\n  function redeem(uint256 _amount) external;\r\n}\r\n\r\n\r\ninterface IAaveLendingPool {\r\n  function deposit(\r\n    address _reserve,\r\n    uint256 _amount,\r\n    uint16 _referralCode\r\n  ) external;\r\n}\r\n\r\n\r\ninterface IAaveLendingPoolCore {}\r\n",
+  "sourcePath": "C:\\Users\\mail\\Personal\\ETH-global\\BetTogether-Contracts\\contracts\\interfaces\\IAave.sol",
   "ast": {
-    "absolutePath": "/Users/mcplums/Repos/BetTogether/contracts/interfaces/IAave.sol",
+    "absolutePath": "/C/Users/mail/Personal/ETH-global/BetTogether-Contracts/contracts/interfaces/IAave.sol",
     "exportedSymbols": {
       "IAaveLendingPool": [
-        187
+        1029
       ],
       "IAaveLendingPoolCore": [
-        188
+        1030
       ],
       "IaToken": [
-        177
+        1019
       ]
     },
-    "id": 189,
+    "id": 1031,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 164,
+        "id": 1006,
         "literals": [
           "solidity",
           ">=",
@@ -70,7 +70,7 @@
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "0:32:4"
+        "src": "0:32:3"
       },
       {
         "abstract": false,
@@ -79,9 +79,9 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 177,
+        "id": 1019,
         "linearizedBaseContracts": [
-          177
+          1019
         ],
         "name": "IaToken",
         "nodeType": "ContractDefinition",
@@ -90,7 +90,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "70a08231",
-            "id": 171,
+            "id": 1013,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -98,18 +98,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 167,
+              "id": 1009,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 166,
+                  "id": 1008,
                   "mutability": "mutable",
                   "name": "_user",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 171,
-                  "src": "79:13:4",
+                  "scope": 1013,
+                  "src": "80:13:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -117,10 +117,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 165,
+                    "id": 1007,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "79:7:4",
+                    "src": "80:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -131,21 +131,21 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "78:15:4"
+              "src": "79:15:3"
             },
             "returnParameters": {
-              "id": 170,
+              "id": 1012,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 169,
+                  "id": 1011,
                   "mutability": "mutable",
                   "name": "",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 171,
-                  "src": "116:4:4",
+                  "scope": 1013,
+                  "src": "118:7:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -153,10 +153,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 168,
-                    "name": "uint",
+                    "id": 1010,
+                    "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "116:4:4",
+                    "src": "118:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -166,10 +166,10 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "115:6:4"
+              "src": "117:9:3"
             },
-            "scope": 177,
-            "src": "60:62:4",
+            "scope": 1019,
+            "src": "61:66:3",
             "stateMutability": "view",
             "virtual": false,
             "visibility": "external"
@@ -178,7 +178,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "db006a75",
-            "id": 176,
+            "id": 1018,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -186,18 +186,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 174,
+              "id": 1016,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 173,
+                  "id": 1015,
                   "mutability": "mutable",
                   "name": "_amount",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 176,
-                  "src": "143:15:4",
+                  "scope": 1018,
+                  "src": "149:15:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -205,10 +205,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 172,
+                    "id": 1014,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "143:7:4",
+                    "src": "149:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -218,23 +218,23 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "142:17:4"
+              "src": "148:17:3"
             },
             "returnParameters": {
-              "id": 175,
+              "id": 1017,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "168:0:4"
+              "src": "174:0:3"
             },
-            "scope": 177,
-            "src": "127:42:4",
+            "scope": 1019,
+            "src": "133:42:3",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 189,
-        "src": "35:136:4"
+        "scope": 1031,
+        "src": "38:140:3"
       },
       {
         "abstract": false,
@@ -243,9 +243,9 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 187,
+        "id": 1029,
         "linearizedBaseContracts": [
-          187
+          1029
         ],
         "name": "IAaveLendingPool",
         "nodeType": "ContractDefinition",
@@ -254,7 +254,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "d2d0e066",
-            "id": 186,
+            "id": 1028,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -262,18 +262,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 184,
+              "id": 1026,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 179,
+                  "id": 1021,
                   "mutability": "mutable",
                   "name": "_reserve",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "225:16:4",
+                  "scope": 1028,
+                  "src": "239:16:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -281,10 +281,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 178,
+                    "id": 1020,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "225:7:4",
+                    "src": "239:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -296,13 +296,13 @@
                 },
                 {
                   "constant": false,
-                  "id": 181,
+                  "id": 1023,
                   "mutability": "mutable",
                   "name": "_amount",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "243:15:4",
+                  "scope": 1028,
+                  "src": "262:15:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -310,10 +310,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 180,
+                    "id": 1022,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "243:7:4",
+                    "src": "262:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -324,13 +324,13 @@
                 },
                 {
                   "constant": false,
-                  "id": 183,
+                  "id": 1025,
                   "mutability": "mutable",
                   "name": "_referralCode",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "260:20:4",
+                  "scope": 1028,
+                  "src": "284:20:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -338,10 +338,10 @@
                     "typeString": "uint16"
                   },
                   "typeName": {
-                    "id": 182,
+                    "id": 1024,
                     "name": "uint16",
                     "nodeType": "ElementaryTypeName",
-                    "src": "260:6:4",
+                    "src": "284:6:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint16",
                       "typeString": "uint16"
@@ -351,23 +351,23 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "223:58:4"
+              "src": "232:77:3"
             },
             "returnParameters": {
-              "id": 185,
+              "id": 1027,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "290:0:4"
+              "src": "318:0:3"
             },
-            "scope": 187,
-            "src": "207:84:4",
+            "scope": 1029,
+            "src": "216:103:3",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 189,
-        "src": "173:120:4"
+        "scope": 1031,
+        "src": "184:138:3"
       },
       {
         "abstract": false,
@@ -376,37 +376,37 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 188,
+        "id": 1030,
         "linearizedBaseContracts": [
-          188
+          1030
         ],
         "name": "IAaveLendingPoolCore",
         "nodeType": "ContractDefinition",
         "nodes": [],
-        "scope": 189,
-        "src": "295:33:4"
+        "scope": 1031,
+        "src": "328:33:3"
       }
     ],
-    "src": "0:328:4"
+    "src": "0:363:3"
   },
   "legacyAST": {
-    "absolutePath": "/Users/mcplums/Repos/BetTogether/contracts/interfaces/IAave.sol",
+    "absolutePath": "/C/Users/mail/Personal/ETH-global/BetTogether-Contracts/contracts/interfaces/IAave.sol",
     "exportedSymbols": {
       "IAaveLendingPool": [
-        187
+        1029
       ],
       "IAaveLendingPoolCore": [
-        188
+        1030
       ],
       "IaToken": [
-        177
+        1019
       ]
     },
-    "id": 189,
+    "id": 1031,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 164,
+        "id": 1006,
         "literals": [
           "solidity",
           ">=",
@@ -417,7 +417,7 @@
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "0:32:4"
+        "src": "0:32:3"
       },
       {
         "abstract": false,
@@ -426,9 +426,9 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 177,
+        "id": 1019,
         "linearizedBaseContracts": [
-          177
+          1019
         ],
         "name": "IaToken",
         "nodeType": "ContractDefinition",
@@ -437,7 +437,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "70a08231",
-            "id": 171,
+            "id": 1013,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -445,18 +445,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 167,
+              "id": 1009,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 166,
+                  "id": 1008,
                   "mutability": "mutable",
                   "name": "_user",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 171,
-                  "src": "79:13:4",
+                  "scope": 1013,
+                  "src": "80:13:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -464,10 +464,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 165,
+                    "id": 1007,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "79:7:4",
+                    "src": "80:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -478,21 +478,21 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "78:15:4"
+              "src": "79:15:3"
             },
             "returnParameters": {
-              "id": 170,
+              "id": 1012,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 169,
+                  "id": 1011,
                   "mutability": "mutable",
                   "name": "",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 171,
-                  "src": "116:4:4",
+                  "scope": 1013,
+                  "src": "118:7:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -500,10 +500,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 168,
-                    "name": "uint",
+                    "id": 1010,
+                    "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "116:4:4",
+                    "src": "118:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -513,10 +513,10 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "115:6:4"
+              "src": "117:9:3"
             },
-            "scope": 177,
-            "src": "60:62:4",
+            "scope": 1019,
+            "src": "61:66:3",
             "stateMutability": "view",
             "virtual": false,
             "visibility": "external"
@@ -525,7 +525,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "db006a75",
-            "id": 176,
+            "id": 1018,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -533,18 +533,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 174,
+              "id": 1016,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 173,
+                  "id": 1015,
                   "mutability": "mutable",
                   "name": "_amount",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 176,
-                  "src": "143:15:4",
+                  "scope": 1018,
+                  "src": "149:15:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -552,10 +552,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 172,
+                    "id": 1014,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "143:7:4",
+                    "src": "149:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -565,23 +565,23 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "142:17:4"
+              "src": "148:17:3"
             },
             "returnParameters": {
-              "id": 175,
+              "id": 1017,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "168:0:4"
+              "src": "174:0:3"
             },
-            "scope": 177,
-            "src": "127:42:4",
+            "scope": 1019,
+            "src": "133:42:3",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 189,
-        "src": "35:136:4"
+        "scope": 1031,
+        "src": "38:140:3"
       },
       {
         "abstract": false,
@@ -590,9 +590,9 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 187,
+        "id": 1029,
         "linearizedBaseContracts": [
-          187
+          1029
         ],
         "name": "IAaveLendingPool",
         "nodeType": "ContractDefinition",
@@ -601,7 +601,7 @@
             "body": null,
             "documentation": null,
             "functionSelector": "d2d0e066",
-            "id": 186,
+            "id": 1028,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -609,18 +609,18 @@
             "nodeType": "FunctionDefinition",
             "overrides": null,
             "parameters": {
-              "id": 184,
+              "id": 1026,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 179,
+                  "id": 1021,
                   "mutability": "mutable",
                   "name": "_reserve",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "225:16:4",
+                  "scope": 1028,
+                  "src": "239:16:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -628,10 +628,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 178,
+                    "id": 1020,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "225:7:4",
+                    "src": "239:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -643,13 +643,13 @@
                 },
                 {
                   "constant": false,
-                  "id": 181,
+                  "id": 1023,
                   "mutability": "mutable",
                   "name": "_amount",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "243:15:4",
+                  "scope": 1028,
+                  "src": "262:15:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -657,10 +657,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 180,
+                    "id": 1022,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "243:7:4",
+                    "src": "262:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -671,13 +671,13 @@
                 },
                 {
                   "constant": false,
-                  "id": 183,
+                  "id": 1025,
                   "mutability": "mutable",
                   "name": "_referralCode",
                   "nodeType": "VariableDeclaration",
                   "overrides": null,
-                  "scope": 186,
-                  "src": "260:20:4",
+                  "scope": 1028,
+                  "src": "284:20:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -685,10 +685,10 @@
                     "typeString": "uint16"
                   },
                   "typeName": {
-                    "id": 182,
+                    "id": 1024,
                     "name": "uint16",
                     "nodeType": "ElementaryTypeName",
-                    "src": "260:6:4",
+                    "src": "284:6:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint16",
                       "typeString": "uint16"
@@ -698,23 +698,23 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "223:58:4"
+              "src": "232:77:3"
             },
             "returnParameters": {
-              "id": 185,
+              "id": 1027,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "290:0:4"
+              "src": "318:0:3"
             },
-            "scope": 187,
-            "src": "207:84:4",
+            "scope": 1029,
+            "src": "216:103:3",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 189,
-        "src": "173:120:4"
+        "scope": 1031,
+        "src": "184:138:3"
       },
       {
         "abstract": false,
@@ -723,26 +723,26 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 188,
+        "id": 1030,
         "linearizedBaseContracts": [
-          188
+          1030
         ],
         "name": "IAaveLendingPoolCore",
         "nodeType": "ContractDefinition",
         "nodes": [],
-        "scope": 189,
-        "src": "295:33:4"
+        "scope": 1031,
+        "src": "328:33:3"
       }
     ],
-    "src": "0:328:4"
+    "src": "0:363:3"
   },
   "compiler": {
     "name": "solc",
-    "version": "0.6.6+commit.6c089d02.Emscripten.clang"
+    "version": "0.6.7+commit.b8d736ae.Emscripten.clang"
   },
   "networks": {},
   "schemaVersion": "3.1.0",
-  "updatedAt": "2020-04-29T14:43:54.636Z",
+  "updatedAt": "2020-05-09T23:28:48.690Z",
   "devdoc": {
     "methods": {}
   },

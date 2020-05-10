@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const INFURA_KEY = process.env.INFURA_KEY;
@@ -61,7 +62,7 @@ module.exports = {
         );
       },
       network_id: 42,
-      gas: 15000000,
+      gas: 9000000,
     },
   },
   compilers: {
