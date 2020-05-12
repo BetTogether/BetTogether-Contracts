@@ -7,7 +7,7 @@ const MNEMONIC = process.env.MNEMONIC;
 
 module.exports = {
   plugins: ["truffle-security"],
-  contracts_build_directory: path.join(__dirname, "client/src/contracts"),
+  contracts_build_directory: path.join(__dirname, "./artifactsTruffle"),
   networks: {
     develop: {
       host: "127.0.0.1",
@@ -68,8 +68,11 @@ module.exports = {
   compilers: {
     solc: {
       version: "0.6.7",
-      optimizer: {
-        enabled: true,
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        },
       },
     },
   },
