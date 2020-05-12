@@ -14,10 +14,11 @@ const RealitioMockup = artifacts.require("RealitioMockup.sol");
 
 const marketOpeningTime = 0;
 const marketResolutionTime = 0;
-const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0";
+const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; 
+const eventName = "US 2020 General Election";
 const numberOfOutcomes = 2;
-const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe";
-const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
+const timeout = 10; 
+const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; 
 
 
 contract('BetTogetherTests', (accounts) => {
@@ -36,7 +37,7 @@ contract('BetTogetherTests', (accounts) => {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
-    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, aToken.address, realitio.address, marketOpeningTime, marketResolutionTime, arbitrator, question, numberOfOutcomes, owner, true);
+    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, aToken.address, realitio.address, marketOpeningTime, marketResolutionTime, arbitrator, eventName, numberOfOutcomes, timeout, owner, true);
   });
 
   it('test', async () => {
