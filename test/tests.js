@@ -17,7 +17,6 @@ const marketResolutionTime = 0;
 const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0"; 
 const eventName = "US 2020 General Election";
 const numberOfOutcomes = 2;
-const timeout = 10; 
 const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe"; 
 
 
@@ -37,7 +36,9 @@ contract('BetTogetherTests', (accounts) => {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
-    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, aToken.address, realitio.address, marketOpeningTime, marketResolutionTime, arbitrator, eventName, numberOfOutcomes, timeout, owner, true);
+    betTogether = await BetTogether.new(dai.address, aToken.address, aToken.address, 
+      aToken.address, realitio.address, marketOpeningTime, marketResolutionTime, 
+      arbitrator, eventName, numberOfOutcomes, owner, true);
   });
 
   it('test', async () => {
