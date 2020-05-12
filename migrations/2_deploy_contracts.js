@@ -18,9 +18,10 @@ const daiAddressKovan = '0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD';
 const marketOpeningTime = 0;
 const marketResolutionTime = 0;
 const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0";
+const eventName = "US 2020 General Election";
 const numberOfOutcomes = 2;
+const timeout = 10;
 const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe";
-const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
 
 // Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
 module.exports = function (deployer, network) {
@@ -40,8 +41,9 @@ module.exports = function (deployer, network) {
               marketOpeningTime,
               marketResolutionTime,
               arbitrator,
-              question,
+              eventName,
               numberOfOutcomes,
+              timeout,
               owner,
               true
             );
@@ -49,30 +51,13 @@ module.exports = function (deployer, network) {
         });
     });
   } else if (network === "kovan") {
-    // factory deploy
-    // deployer.deploy(
-    //   BTMarketFactory,
-    //   daiAddressKovan,
-    //   aaveAtokenAddressKovan,
-    //   aaveLendingPoolAddressKovan,
-    //   aaveLendingPoolCoreAddressKovan,
-    //   realitioAddressKovan
-    // );
-    // market deploy
     deployer.deploy(
-      BTMarket,
+      BTMarketFactory,
       daiAddressKovan,
       aaveAtokenAddressKovan,
       aaveLendingPoolAddressKovan,
       aaveLendingPoolCoreAddressKovan,
-      realitioAddressKovan,
-      marketOpeningTime,
-      marketResolutionTime,
-      arbitrator,
-      question,
-      numberOfOutcomes,
-      owner,
-      true
+      realitioAddressKovan
     );
   }
 };
