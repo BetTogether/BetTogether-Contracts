@@ -31,7 +31,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
   bytes32 public questionId; // the question ID of the question on realitio
   string public eventName;
-  mapping(uint256 => string) public eventOutcomes;
+  mapping(uint256 => string) public outcomeNames;
   uint256 public numberOfOutcomes;
   enum States { WAITING, OPEN, LOCKED, WITHDRAW }
   States public state;
@@ -58,9 +58,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 _marketOpeningTime,
     uint32 _marketResolutionTime,
     address _arbitrator,
-    string memory _eventName,
+    string memory _question,
     uint256 _numberOfOutcomes,
-    uint32 _timeout,
     address _owner,
     bool _testMode
   ) public {
@@ -79,30 +78,24 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     // Pass arguments to public variables
     marketOpeningTime = _marketOpeningTime;
-    if (_testMode) {
-      marketLockingTime = _marketOpeningTime;
-    } else {
-      marketLockingTime = _marketOpeningTime.add(604800); // one week
-    }
     marketResolutionTime = _marketResolutionTime;
-    eventName = _eventName;
     numberOfOutcomes = _numberOfOutcomes;
     testMode = _testMode;
-    // We need to get the below from an argument eventually
-    // ... but I'm getting "Stack too deep, try using fewer variables" error
-    eventOutcomes[0] = "Donald Trump";
-    eventOutcomes[1] = "Joe Biden";
+
+    uint32 _timeout;
+    // timeout = how long realitio waits for a dispute before confirming an answer 
+    // set to 24 hours. should this be hardcoded or might we want to change this?
+    if (_testMode) {
+      marketLockingTime = _marketOpeningTime;
+      _timeout = 30;
+    } else {
+      marketLockingTime = _marketOpeningTime.add(604800); // one week
+      _timeout = 86400;
+    }
 
     // Create the question on Realitio
     uint256 _templateId = 2;
-    // ultimately this needs to be created from the input arguments (i.e. concatenated):
-
-
-      string memory _question
-     = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
-    // timeout = how long the market can be disputed on realitio after an answer has been submitted, 24 hours
     uint256 _nonce = now; // <- should probably change this to zero for mainnet
-    // uint32 _timeout = 86400;
     questionId = _postQuestion(
       _templateId,
       _question,
@@ -120,6 +113,22 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   event ParticipantWithdrawn(address indexed participant);
   event StateChanged(States state);
   event WinnerSelected(address indexed winner);
+
+  ////////////////////////////////////
+  //////// SET NAMES /////////////////
+  ////////////////////////////////////
+  // you cannot pass an array of strings as an argument
+  // string manipulation is also difficult, so it is not easy to parse the relevant 
+  // ... info from the _question string. So, manually set this info
+  // probably redundant, the front end can store this, just adding in case
+
+  function setEventName(string calldata _eventName) external onlyOwner {
+    eventName = _eventName;
+  }
+
+  function setOutcomeName(uint _outcomeId, string calldata _outcomeName) external onlyOwner {
+    outcomeNames[_outcomeId] = _outcomeName;
+  }
 
   ////////////////////////////////////
   //////// MODIFIERS /////////////////
@@ -211,13 +220,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////// DAI FUNCTIONS///////////
   ////////////////////////////////////
 
-  // * internal *
   /// @notice common function for all outgoing DAI transfers
   function _sendCash(address _to, uint256 _amount) internal {
     require(dai.transfer(_to, _amount), "Cash transfer failed");
   }
 
-  // * internal *
   /// @notice common function for all incoming DAI transfers
   function _receiveCash(address _from, uint256 _amount) internal {
     require(
@@ -226,7 +233,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     );
   }
 
-  // * internal *
   /// @notice mints Dai, will only work on a testnet
   function _mintCash(uint256 _amount) internal {
     dai.mint(_amount);

@@ -45,7 +45,7 @@ contract BTMarketFactory is Ownable, Pausable {
     uint256 _marketOpeningTime,
     uint32 _marketResolutionTime,
     address _arbitrator,
-    string memory _eventName,
+    string memory _question,
     uint256 _numberOfOutcomes,
     uint32 _timeout
   ) public /* onlyOwner TODO removed for development */ whenNotPaused returns (BTMarket) {
@@ -58,9 +58,8 @@ contract BTMarketFactory is Ownable, Pausable {
       _marketOpeningTime: _marketOpeningTime,
       _marketResolutionTime: _marketResolutionTime,
       _arbitrator: _arbitrator,
-      _eventName: _eventName,
+      _question: _question,
       _numberOfOutcomes: _numberOfOutcomes,
-      _timeout: _timeout,
       _owner: msg.sender,
       _testMode: true
     });
