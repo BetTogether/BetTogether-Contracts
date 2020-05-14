@@ -46,7 +46,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   address[] public participants;
   mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
   uint256 public winningOutcome = 69; // start with incorrect winning outcome
-  uint256 public totalWithdrawn;
+  uint256 public betsWithdrawn;
 
   ////////////////////////////////////
   //////// CONSTRUCTOR ///////////////
@@ -166,9 +166,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   function getTotalInterest() public view returns (uint256) {
-    uint256 _remainingPrincipal = totalBet.sub(totalWithdrawn);
+    uint256 _remainingBet = totalBet.sub(betsWithdrawn);
     uint256 _totalAdaibalances = aToken.balanceOf(address(this));
-    uint256 _totalInterest = _totalAdaibalances.sub(_remainingPrincipal);
+    uint256 _totalInterest = _totalAdaibalances.sub(_remainingBet);
     return _totalInterest;
   }
 
@@ -181,11 +181,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     if (_amountBetOnOutcome > 0) {
       uint256 _totalInterest = getTotalInterest();
       // console.log(totalBet);
-      // console.log(totalWithdrawn);
-      uint256 _remainingPrincipal = totalBet.sub(totalWithdrawn);
-      if (_remainingPrincipal > 0) {
+      // console.log(betsWithdrawn);
+      uint256 _remainingBet = totalBet.sub(betsWithdrawn);
+      if (_remainingBet > 0) {
         _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(
-          _remainingPrincipal
+          _remainingBet
         );
       }
     }
@@ -234,7 +234,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   ////////////////////////////////////
-  ////////// DAI FUNCTIONS///////////
+  /////// EXTERNAL DAI CALLS /////////
   ////////////////////////////////////
 
   /// @notice common function for all outgoing DAI transfers
@@ -256,6 +256,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   ////////////////////////////////////
+  /////// EXTERNAL AAVE CALLS ////////
+  ////////////////////////////////////
+
+  /// @notice swap Dai for aDai
+  function _sendToAave(uint256 _dai) internal {
+    aaveLendingPool.deposit(address(dai), _dai, 0);
+  }
+
+  /// @notice swap aDai for Dai
+  function _redeemFromAave(uint256 _dai) internal {
+    aToken.redeem(_dai);
+  }
+
+  ////////////////////////////////////
   //////// EXTERNAL FUNCTIONS ////////
   ////////////////////////////////////
   function placeBet(uint256 _outcome, uint256 _dai)
@@ -274,7 +288,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     } else {
       _receiveCash(msg.sender, _dai);
     }
-    aaveLendingPool.deposit(address(dai), _dai, 0);
+    _sendToAave(_dai);
   }
 
   function determineWinner() external whenNotPaused {
@@ -304,32 +318,33 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   {
     require(!withdrawnBool[msg.sender], "Already withdrawn");
     withdrawnBool[msg.sender] = true;
-    // first, send winnings, if any
     uint256 _winnings = getWinnings(winningOutcome);
-    if (_winnings > 0) {
-      aToken.redeem(_winnings);
-      _sendCash(msg.sender, _winnings);
+    uint256 _betAllOutcomes = getBetAndBurnTokens();
+    uint256 _daiToSend = _winnings.add(_betAllOutcomes);
+    // update internals
+    betsWithdrawn = betsWithdrawn.add(_betAllOutcomes);
+    // externals
+    if (_daiToSend > 0) {
+      _redeemFromAave(_daiToSend);
+      _sendCash(msg.sender, _daiToSend);
     }
-    // second, return pariticpant's original bet
-    _returnBet();
   }
 
   ////////////////////////////////////
   //////// INTERNAL FUNCTIONS ////////
   ////////////////////////////////////
-  function _returnBet() internal {
+ 
+  function getBetAndBurnTokens() internal returns(uint256) {
+    uint256 _usersTotalBet;
     for (uint256 i = 0; i < numberOfOutcomes; i++) {
       Token _token = Token(tokens[i]);
-      uint256 _amountBetOnOutcome = _token.balanceOf(msg.sender);
-      if (_amountBetOnOutcome > 0) {
-        // effects
-        totalWithdrawn = totalWithdrawn.add(_amountBetOnOutcome);
-        _token.burn(msg.sender, _amountBetOnOutcome);
-        // interactions
-        aToken.redeem(_amountBetOnOutcome);
-        _sendCash(msg.sender, _amountBetOnOutcome);
+      uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
+      if (_userBetThisOutcome > 0) {
+        _usersTotalBet = _usersTotalBet.add(_userBetThisOutcome);
+        _token.burn(msg.sender, _userBetThisOutcome);
       }
     }
+    return _usersTotalBet;
   }
 
   ////////////////////////////////////

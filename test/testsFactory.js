@@ -63,18 +63,18 @@ contract('BetTogetherTests', (accounts) => {
     // check returned deposit for user0
     var depositReturnedUser0 = await dai.balanceOf(user0);
     assert.equal(depositReturnedUser0, web3.utils.toWei('100', 'ether'));
-    // check totalBet and totalWithdrawn
+    // check totalBet and betsWithdrawn
     var totalBet = await betTogether.totalBet.call();
     assert.equal(totalBet, web3.utils.toWei('300', 'ether'))
-    var totalWithdrawn = await betTogether.totalWithdrawn.call();
-    assert.equal(totalWithdrawn, web3.utils.toWei('100', 'ether'));
+    var betsWithdrawn = await betTogether.betsWithdrawn.call();
+    assert.equal(betsWithdrawn, web3.utils.toWei('100', 'ether'));
     // check returned deposit for user1
     await betTogether.withdraw({
       from: user1
     });
     var depositReturnedUser1 = await dai.balanceOf(user1);
     assert.equal(depositReturnedUser1, web3.utils.toWei('230', 'ether'));
-    totalWithdrawn = await betTogether.totalWithdrawn.call();
-    assert.equal(totalWithdrawn, web3.utils.toWei('300', 'ether'));
+    betsWithdrawn = await betTogether.betsWithdrawn.call();
+    assert.equal(betsWithdrawn, web3.utils.toWei('300', 'ether'));
   });
 });
