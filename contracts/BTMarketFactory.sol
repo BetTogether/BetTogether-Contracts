@@ -1,4 +1,4 @@
-pragma solidity 0.6.7;
+pragma solidity 0.6.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -48,7 +48,12 @@ contract BTMarketFactory is Ownable, Pausable {
     address _arbitrator,
     string memory _question,
     uint256 _numberOfOutcomes
-  ) public /* onlyOwner TODO removed for development */ whenNotPaused returns (BTMarket) {
+  )
+    public
+    /* onlyOwner TODO removed for development */
+    whenNotPaused
+    returns (BTMarket)
+  {
     BTMarket newContract = new BTMarket({
       _daiAddress: dai,
       _aTokenAddress: aToken,

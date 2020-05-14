@@ -1,4 +1,4 @@
-pragma solidity 0.6.7;
+pragma solidity 0.6.8;
 
 import "@nomiclabs/buidler/console.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -86,7 +86,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     testMode = _testMode;
 
     uint32 _timeout;
-    // timeout = how long realitio waits for a dispute before confirming an answer 
+    // timeout = how long realitio waits for a dispute before confirming an answer
     // set to 24 hours. should this be hardcoded or might we want to change this?
     if (_testMode) {
       marketLockingTime = _marketOpeningTime;
@@ -121,7 +121,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   //////// INITIAL SETUP /////////////
   ////////////////////////////////////
   // you cannot pass an array of strings as an argument
-  // string manipulation is also difficult, so it is not easy to parse the relevant 
+  // string manipulation is also difficult, so it is not easy to parse the relevant
   // ... info from the _question string. So, manually set this info
   // probably redundant, the front end can store this, just adding in case
 
@@ -130,12 +130,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   function createTokenContract(
-    string calldata _outcomeName, 
+    string calldata _outcomeName,
     string calldata _tokenName
-  ) external 
-    onlyOwner
-    checkState(States.SETUP) 
-  {
+  ) external onlyOwner checkState(States.SETUP) {
     outcomeNames.push(_outcomeName);
     Token tokenContract = new Token({ _tokenName: _tokenName });
     tokens.push(tokenContract);
@@ -333,8 +330,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   //////// INTERNAL FUNCTIONS ////////
   ////////////////////////////////////
- 
-  function getBetAndBurnTokens() internal returns(uint256) {
+
+  function getBetAndBurnTokens() internal returns (uint256) {
     uint256 _usersTotalBet;
     for (uint256 i = 0; i < numberOfOutcomes; i++) {
       Token _token = Token(tokens[i]);
