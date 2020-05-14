@@ -175,12 +175,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   function getWinnings(uint256 _outcome) public view returns (uint256) {
     Token _token = Token(tokens[_outcome]);
     uint256 _winnings;
-    uint256 _usersBetOnWinningOutcome = _token.balanceOf(msg.sender);
-    if (_usersBetOnWinningOutcome > 0) {
+    uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
+    if (_userBetOnWinningOutcome > 0) {
       uint256 _totalInterest = getTotalInterest();
-      uint256 _totalRemainingBetsWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(betsWithdrawnPerOutcome[winningOutcome]);
-      if (_totalRemainingBetsWinningOutcome > 0) {
-        _winnings = (_totalInterest.mul(_usersBetOnWinningOutcome)).div(_totalRemainingBetsWinningOutcome);
+      uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(betsWithdrawnPerOutcome[winningOutcome]);
+      if (_totalRemainingBetsOnWinningOutcome > 0) {
+        _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(_totalRemainingBetsOnWinningOutcome);
       } 
     }
     return _winnings;
@@ -313,8 +313,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     require(!withdrawnBool[msg.sender], "Already withdrawn");
     withdrawnBool[msg.sender] = true;
     uint256 _winnings = getWinnings(winningOutcome);
-    uint256 _usersBetsAllOutcomes = getBetAndBurnTokens();
-    uint256 _daiToSend = _winnings.add(_usersBetsAllOutcomes);
+    uint256 _userBetsAllOutcomes = _getUserBetsAndBurnTokens();
+    uint256 _daiToSend = _winnings.add(_userBetsAllOutcomes);
     // externals
     if (_daiToSend > 0) {
       _redeemFromAave(_daiToSend);
@@ -325,19 +325,19 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   //////// INTERNAL FUNCTIONS ////////
   ////////////////////////////////////
-  function getBetAndBurnTokens() internal returns (uint256) {
-    uint256 _usersBetsAllOutcomes;
+  function _getUserBetsAndBurnTokens() internal returns (uint256) {
+    uint256 _userBetsAllOutcomes;
     for (uint256 i = 0; i < numberOfOutcomes; i++) {
       Token _token = Token(tokens[i]);
       uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
       if (_userBetThisOutcome > 0) {
-        _usersBetsAllOutcomes = _usersBetsAllOutcomes.add(_userBetThisOutcome);
-        betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_usersBetsAllOutcomes);
+        _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
+        betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetsAllOutcomes);
         _token.burn(msg.sender, _userBetThisOutcome);
       }
     }
-    betsWithdrawn = betsWithdrawn.add(_usersBetsAllOutcomes);
-    return _usersBetsAllOutcomes;
+    betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
+    return _userBetsAllOutcomes;
   }
 
   ////////////////////////////////////
