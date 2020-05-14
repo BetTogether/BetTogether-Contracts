@@ -41,12 +41,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   bool public testMode;
 
   //////// Betting variables ////////
-  mapping(uint256 => uint256) public totalBetPerOutcome;
-  uint256 public totalBet;
+  mapping(uint256 => uint256) public totalBetsPerOutcome;
+  mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
+  uint256 public totalBets;
+  uint256 public betsWithdrawn;
   address[] public participants;
   mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
   uint256 public winningOutcome = 69; // start with incorrect winning outcome
-  uint256 public betsWithdrawn;
 
   ////////////////////////////////////
   //////// CONSTRUCTOR ///////////////
@@ -163,7 +164,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   function getTotalInterest() public view returns (uint256) {
-    uint256 _remainingBet = totalBet.sub(betsWithdrawn);
+    uint256 _remainingBet = totalBets.sub(betsWithdrawn);
     uint256 _totalAdaibalances = aToken.balanceOf(address(this));
     uint256 _totalInterest = _totalAdaibalances.sub(_remainingBet);
     return _totalInterest;
@@ -174,17 +175,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   function getWinnings(uint256 _outcome) public view returns (uint256) {
     Token _token = Token(tokens[_outcome]);
     uint256 _winnings;
-    uint256 _amountBetOnOutcome = _token.balanceOf(msg.sender);
-    if (_amountBetOnOutcome > 0) {
+    uint256 _usersBetOnWinningOutcome = _token.balanceOf(msg.sender);
+    if (_usersBetOnWinningOutcome > 0) {
       uint256 _totalInterest = getTotalInterest();
-      // console.log(totalBet);
-      // console.log(betsWithdrawn);
-      uint256 _remainingBet = totalBet.sub(betsWithdrawn);
-      if (_remainingBet > 0) {
-        _winnings = (_amountBetOnOutcome.mul(_totalInterest)).div(
-          _remainingBet
-        );
-      }
+      uint256 _totalRemainingBetsWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(betsWithdrawnPerOutcome[winningOutcome]);
+      if (_totalRemainingBetsWinningOutcome > 0) {
+        _winnings = (_totalInterest.mul(_usersBetOnWinningOutcome)).div(_totalRemainingBetsWinningOutcome);
+      } 
     }
     return _winnings;
   }
@@ -278,8 +275,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
     emit ParticipantEntered(msg.sender);
     _token.mint(msg.sender, _dai);
-    totalBet = totalBet.add(_dai);
-    totalBetPerOutcome[_outcome] = totalBetPerOutcome[_outcome].add(_dai);
+    totalBets = totalBets.add(_dai);
+    totalBetsPerOutcome[_outcome] = totalBetsPerOutcome[_outcome].add(_dai);
     if (testMode) {
       _mintCash(_dai);
     } else {
@@ -316,10 +313,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     require(!withdrawnBool[msg.sender], "Already withdrawn");
     withdrawnBool[msg.sender] = true;
     uint256 _winnings = getWinnings(winningOutcome);
-    uint256 _betAllOutcomes = getBetAndBurnTokens();
-    uint256 _daiToSend = _winnings.add(_betAllOutcomes);
-    // update internals
-    betsWithdrawn = betsWithdrawn.add(_betAllOutcomes);
+    uint256 _usersBetsAllOutcomes = getBetAndBurnTokens();
+    uint256 _daiToSend = _winnings.add(_usersBetsAllOutcomes);
     // externals
     if (_daiToSend > 0) {
       _redeemFromAave(_daiToSend);
@@ -330,18 +325,19 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   //////// INTERNAL FUNCTIONS ////////
   ////////////////////////////////////
-
   function getBetAndBurnTokens() internal returns (uint256) {
-    uint256 _usersTotalBet;
+    uint256 _usersBetsAllOutcomes;
     for (uint256 i = 0; i < numberOfOutcomes; i++) {
       Token _token = Token(tokens[i]);
       uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
       if (_userBetThisOutcome > 0) {
-        _usersTotalBet = _usersTotalBet.add(_userBetThisOutcome);
+        _usersBetsAllOutcomes = _usersBetsAllOutcomes.add(_userBetThisOutcome);
+        betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_usersBetsAllOutcomes);
         _token.burn(msg.sender, _userBetThisOutcome);
       }
     }
-    return _usersTotalBet;
+    betsWithdrawn = betsWithdrawn.add(_usersBetsAllOutcomes);
+    return _usersBetsAllOutcomes;
   }
 
   ////////////////////////////////////
