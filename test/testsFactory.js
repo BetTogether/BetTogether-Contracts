@@ -47,34 +47,38 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.createTokenContract('Donald Trump','MBtrump');
     await betTogether.createTokenContract('Joe Biden','MBbiden');
     await betTogether.incrementState();
-    await betTogether.placeBet(0, web3.utils.toWei('100', 'ether'), {
-      from: user0
-    });
-    await betTogether.placeBet(1, web3.utils.toWei('200', 'ether'), {
-      from: user1
-    });
+    await betTogether.placeBet(0, web3.utils.toWei('200', 'ether'), {from: user0});
+    await betTogether.placeBet(0, web3.utils.toWei('300', 'ether'), {from: user1});
+    await betTogether.placeBet(1, web3.utils.toWei('100', 'ether'), {from: user2});
+    await betTogether.placeBet(1, web3.utils.toWei('400', 'ether'), {from: user3});
     await aToken.generate10PercentInterest(betTogether.address);
     await betTogether.incrementState();
     await realitio.setResult(1);
     await betTogether.determineWinner();
-    await betTogether.withdraw({
-      from: user0
-    });
-    // check returned deposit for user0
-    var depositReturnedUser0 = await dai.balanceOf(user0);
-    assert.equal(depositReturnedUser0, web3.utils.toWei('100', 'ether'));
-    // check totalBet and betsWithdrawn
-    var totalBet = await betTogether.totalBet.call();
-    assert.equal(totalBet, web3.utils.toWei('300', 'ether'))
-    var betsWithdrawn = await betTogether.betsWithdrawn.call();
-    assert.equal(betsWithdrawn, web3.utils.toWei('100', 'ether'));
-    // check returned deposit for user1
-    await betTogether.withdraw({
-      from: user1
-    });
-    var depositReturnedUser1 = await dai.balanceOf(user1);
-    assert.equal(depositReturnedUser1, web3.utils.toWei('230', 'ether'));
+    // check returned deposit + winngs for user2 and user3
+    await betTogether.withdraw({from: user2});
+    var daiSentUser = await dai.balanceOf(user2);
+    assert.equal(daiSentUser, web3.utils.toWei('120', 'ether'));
+    await betTogether.withdraw({from: user3});
+    var daiSentUser = await dai.balanceOf(user3);
+    assert.equal(daiSentUser, web3.utils.toWei('480', 'ether'));
+    // check totalBets and betsWithdrawn
+    var totalBets = await betTogether.totalBets.call();
+    assert.equal(totalBets, web3.utils.toWei('1000', 'ether'))
     betsWithdrawn = await betTogether.betsWithdrawn.call();
-    assert.equal(betsWithdrawn, web3.utils.toWei('300', 'ether'));
+    assert.equal(betsWithdrawn, web3.utils.toWei('500', 'ether'));
+    // check returned deposit for losers user0 and user1
+    await betTogether.withdraw({from: user0});
+    var daiSentUser = await dai.balanceOf(user0);
+    assert.equal(daiSentUser, web3.utils.toWei('200', 'ether'));
+    await betTogether.withdraw({from: user1});
+    var daiSentUser = await dai.balanceOf(user1);
+    assert.equal(daiSentUser, web3.utils.toWei('300', 'ether'));
+    // check totalBets and betsWithdrawn
+    var totalBets = await betTogether.totalBets.call();
+    assert.equal(totalBets, web3.utils.toWei('1000', 'ether'))
+    var betsWithdrawn = await betTogether.betsWithdrawn.call();
+    assert.equal(betsWithdrawn, web3.utils.toWei('1000', 'ether'));
+
   });
 });
