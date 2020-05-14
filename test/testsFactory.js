@@ -18,6 +18,7 @@ const marketResolutionTime = 0;
 const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0";
 const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
 const numberOfOutcomes = 2;
+const eventName = 'Who will win the 2020 US General Election';
 
 contract('BetTogetherTests', (accounts) => {
 
@@ -36,13 +37,15 @@ contract('BetTogetherTests', (accounts) => {
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
     betTogetherFactory = await BetTogetherFactory.new(dai.address, aToken.address, aToken.address, aToken.address, realitio.address);
-    await betTogetherFactory.createMarket(marketOpeningTime, marketResolutionTime,
+    await betTogetherFactory.createMarket(eventName, marketOpeningTime, marketResolutionTime,
       arbitrator, question, numberOfOutcomes);
   });
 
   it('betting leads to winner receiving stake and interest, loser receives stake back', async () => {
     marketAddress = await betTogetherFactory.markets.call(0);
     betTogether = await BetTogether.at(marketAddress);
+    await betTogether.createTokenContract('Donald Trump','MBtrump');
+    await betTogether.createTokenContract('Joe Biden','MBbiden');
     await betTogether.incrementState();
     await betTogether.placeBet(0, web3.utils.toWei('100', 'ether'), {
       from: user0

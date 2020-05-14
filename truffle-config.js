@@ -63,6 +63,7 @@ module.exports = {
       },
       network_id: 42,
       gas: 9000000,
+      gasPrice: 1000000000, // 1 gwei
     },
   },
   compilers: {

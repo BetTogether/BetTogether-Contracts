@@ -42,6 +42,7 @@ contract BTMarketFactory is Ownable, Pausable {
   }
 
   function createMarket(
+    string memory _eventName,
     uint256 _marketOpeningTime,
     uint32 _marketResolutionTime,
     address _arbitrator,
@@ -54,6 +55,7 @@ contract BTMarketFactory is Ownable, Pausable {
       _aaveLpAddress: aaveLendingPool,
       _aaveLpcoreAddress: aaveLendingPoolCore,
       _realitioAddress: realitio,
+      _eventName: _eventName,
       _marketOpeningTime: _marketOpeningTime,
       _marketResolutionTime: _marketResolutionTime,
       _arbitrator: _arbitrator,
