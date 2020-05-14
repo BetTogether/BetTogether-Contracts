@@ -1,7 +1,6 @@
 pragma solidity 0.6.7;
 
 import "@nomiclabs/buidler/console.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -9,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAave.sol";
 import "./interfaces/IDai.sol";
 import "./interfaces/IRealitio.sol";
+import "./Token.sol";
 
 
 contract BTMarket is Ownable, Pausable, ReentrancyGuard {
@@ -30,7 +30,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
   bytes32 public questionId; // the question ID of the question on realitio
   string public eventName;
-  mapping(uint256 => string) public outcomeNames;
+  string[] public outcomeNames;
+  Token[] public tokens;
   uint256 public numberOfOutcomes;
   enum States { WAITING, OPEN, LOCKED, WITHDRAW }
   States public state;
@@ -58,7 +59,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint32 _marketResolutionTime,
     address _arbitrator,
     string memory _question,
-    uint256 _numberOfOutcomes,
     address _owner,
     bool _testMode
   ) public {
@@ -77,7 +77,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     // Pass arguments to public variables
     marketOpeningTime = _marketOpeningTime;
     marketResolutionTime = _marketResolutionTime;
-    numberOfOutcomes = _numberOfOutcomes;
     testMode = _testMode;
 
     uint32 _timeout;
@@ -113,7 +112,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   event WinnerSelected(address indexed winner);
 
   ////////////////////////////////////
-  //////// SET NAMES /////////////////
+  //////// INITIAL SETUP /////////////
   ////////////////////////////////////
   // you cannot pass an array of strings as an argument
   // string manipulation is also difficult, so it is not easy to parse the relevant 
@@ -124,8 +123,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     eventName = _eventName;
   }
 
-  function setOutcomeName(uint _outcomeId, string calldata _outcomeName) external onlyOwner {
-    outcomeNames[_outcomeId] = _outcomeName;
+  function createToken(string calldata _outcomeName, string calldata _tokenName) external onlyOwner {
+    outcomeNames.push(_outcomeName);
+    Token tokenContract = new Token({ _tokenName: _tokenName });
+    tokens.push(tokenContract);
+    numberOfOutcomes = numberOfOutcomes.add(1);
   }
 
   ////////////////////////////////////
