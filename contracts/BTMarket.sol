@@ -22,7 +22,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   Dai public dai;
   IaToken public aToken;
   IAaveLendingPool public aaveLendingPool;
-  IAaveLendingPoolCore public aaveLendingPoolCore;
   IRealitio public realitio;
 
   //////// Market Details ////////
@@ -70,11 +69,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     dai = _daiAddress;
     aToken = _aTokenAddress;
     aaveLendingPool = _aaveLpAddress;
-    aaveLendingPoolCore = _aaveLpcoreAddress;
     realitio = _realitioAddress;
 
     // Approvals
-    dai.approve(address(aaveLendingPoolCore), 2**255);
+    dai.approve(address(_aaveLpcoreAddress), 2**255);
 
     // Pass arguments to public variables
     marketOpeningTime = _marketOpeningTime;
