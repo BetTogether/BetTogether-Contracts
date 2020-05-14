@@ -42,10 +42,12 @@ contract BTMarketFactory is Ownable, Pausable {
   }
 
   function createMarket(
+    string memory _eventName,
     uint256 _marketOpeningTime,
     uint32 _marketResolutionTime,
     address _arbitrator,
-    string memory _question
+    string memory _question,
+    uint256 _numberOfOutcomes
   ) public /* onlyOwner TODO removed for development */ whenNotPaused returns (BTMarket) {
     BTMarket newContract = new BTMarket({
       _daiAddress: dai,
@@ -53,10 +55,12 @@ contract BTMarketFactory is Ownable, Pausable {
       _aaveLpAddress: aaveLendingPool,
       _aaveLpcoreAddress: aaveLendingPoolCore,
       _realitioAddress: realitio,
+      _eventName: _eventName,
       _marketOpeningTime: _marketOpeningTime,
       _marketResolutionTime: _marketResolutionTime,
       _arbitrator: _arbitrator,
       _question: _question,
+      _numberOfOutcomes: _numberOfOutcomes,
       _owner: msg.sender,
       _testMode: true
     });

@@ -24,6 +24,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   IAaveLendingPool public aaveLendingPool;
   IRealitio public realitio;
 
+  //////// Setup ////////
+  uint256 private tokenContractsCreated;
+
   //////// Market Details ////////
   uint256 public marketOpeningTime; // when the market is opened for bets
   uint256 public marketLockingTime; // when the market is no longer open for bets
@@ -33,12 +36,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   string[] public outcomeNames;
   Token[] public tokens;
   uint256 public numberOfOutcomes;
-  enum States { WAITING, OPEN, LOCKED, WITHDRAW }
+  enum States { SETUP, WAITING, OPEN, LOCKED, WITHDRAW }
   States public state;
   bool public testMode;
 
   //////// Betting variables ////////
-  mapping(address => mapping(uint256 => uint256)) public balances;
   mapping(uint256 => uint256) public totalBetPerOutcome;
   uint256 public totalBet;
   address[] public participants;
@@ -55,10 +57,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     IAaveLendingPool _aaveLpAddress,
     IAaveLendingPoolCore _aaveLpcoreAddress,
     IRealitio _realitioAddress,
+    string memory _eventName,
     uint256 _marketOpeningTime,
     uint32 _marketResolutionTime,
     address _arbitrator,
     string memory _question,
+    uint256 _numberOfOutcomes,
     address _owner,
     bool _testMode
   ) public {
@@ -75,8 +79,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     dai.approve(address(_aaveLpcoreAddress), 2**255);
 
     // Pass arguments to public variables
+    eventName = _eventName;
     marketOpeningTime = _marketOpeningTime;
     marketResolutionTime = _marketResolutionTime;
+    numberOfOutcomes = _numberOfOutcomes;
     testMode = _testMode;
 
     uint32 _timeout;
@@ -123,11 +129,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     eventName = _eventName;
   }
 
-  function createToken(string calldata _outcomeName, string calldata _tokenName) external onlyOwner {
+  function createTokenContract(
+    string calldata _outcomeName, 
+    string calldata _tokenName
+  ) external 
+    onlyOwner
+    checkState(States.SETUP) 
+  {
     outcomeNames.push(_outcomeName);
     Token tokenContract = new Token({ _tokenName: _tokenName });
     tokens.push(tokenContract);
-    numberOfOutcomes = numberOfOutcomes.add(1);
+    tokenContractsCreated = tokenContractsCreated.add(1);
+    if (tokenContractsCreated == numberOfOutcomes) {
+      state = States(uint256(state) + 1);
+    }
   }
 
   ////////////////////////////////////
@@ -146,7 +161,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
-    return balances[msg.sender][_outcome];
+    Token _token = Token(tokens[_outcome]);
+    return _token.balanceOf(msg.sender);
   }
 
   function getTotalInterest() public view returns (uint256) {
@@ -159,8 +175,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   /// @dev Returns total winnings for a participant based on current accumulated interest
   /// @dev ... and assuming the passed _outcome wins.
   function getWinnings(uint256 _outcome) public view returns (uint256) {
+    Token _token = Token(tokens[_outcome]);
     uint256 _winnings;
-    uint256 _amountBetOnOutcome = balances[msg.sender][_outcome];
+    uint256 _amountBetOnOutcome = _token.balanceOf(msg.sender);
     if (_amountBetOnOutcome > 0) {
       uint256 _totalInterest = getTotalInterest();
       // console.log(totalBet);
@@ -246,10 +263,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     checkState(States.OPEN)
     whenNotPaused
   {
-    if (balances[msg.sender][_outcome] == 0) participants.push(msg.sender);
+    Token _token = Token(tokens[_outcome]);
+    if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
     emit ParticipantEntered(msg.sender);
-    // increment three variables- balances, totalBet, totalBetPerOutcome
-    balances[msg.sender][_outcome] = balances[msg.sender][_outcome].add(_dai);
+    _token.mint(msg.sender, _dai);
     totalBet = totalBet.add(_dai);
     totalBetPerOutcome[_outcome] = totalBetPerOutcome[_outcome].add(_dai);
     if (testMode) {
@@ -267,6 +284,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   }
 
   // keep this public as it's called by determineWinner
+  // not onlyOwner, can be called by anyone, this is fine
   function incrementState() public whenNotPaused {
     if (
       ((state == States.WAITING) && (marketOpeningTime < now)) ||
@@ -301,10 +319,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
   ////////////////////////////////////
   function _returnBet() internal {
     for (uint256 i = 0; i < numberOfOutcomes; i++) {
-      uint256 _amountBetOnOutcome = balances[msg.sender][i];
+      Token _token = Token(tokens[i]);
+      uint256 _amountBetOnOutcome = _token.balanceOf(msg.sender);
       if (_amountBetOnOutcome > 0) {
         // effects
         totalWithdrawn = totalWithdrawn.add(_amountBetOnOutcome);
+        _token.burn(msg.sender, _amountBetOnOutcome);
         // interactions
         aToken.redeem(_amountBetOnOutcome);
         _sendCash(msg.sender, _amountBetOnOutcome);
