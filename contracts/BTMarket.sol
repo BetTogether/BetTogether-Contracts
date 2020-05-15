@@ -36,7 +36,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     string[] public outcomeNames;
     Token[] public tokens;
     uint256 public numberOfOutcomes;
-    enum States { SETUP, WAITING, OPEN, LOCKED, WITHDRAW }
+    enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
     bool public testMode;
 
@@ -69,45 +69,45 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ) public {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
-    }
-    // Externals
-    dai = _daiAddress;
-    aToken = _aTokenAddress;
-    aaveLendingPool = _aaveLpAddress;
-    realitio = _realitioAddress;
+        }
+        // Externals
+        dai = _daiAddress;
+        aToken = _aTokenAddress;
+        aaveLendingPool = _aaveLpAddress;
+        realitio = _realitioAddress;
 
-    // Approvals
-    dai.approve(address(_aaveLpcoreAddress), 2**255);
+        // Approvals
+        dai.approve(address(_aaveLpcoreAddress), 2**255);
 
-    // Pass arguments to public variables
-    eventName = _eventName;
-    marketOpeningTime = _marketOpeningTime;
-    marketResolutionTime = _marketResolutionTime;
-    numberOfOutcomes = _numberOfOutcomes;
-    testMode = _testMode;
+        // Pass arguments to public variables
+        eventName = _eventName;
+        marketOpeningTime = _marketOpeningTime;
+        marketResolutionTime = _marketResolutionTime;
+        numberOfOutcomes = _numberOfOutcomes;
+        testMode = _testMode;
 
-    uint32 _timeout;
-    // timeout = how long realitio waits for a dispute before confirming an answer
-    // set to 24 hours. should this be hardcoded or might we want to change this?
-    if (_testMode) {
-        marketLockingTime = _marketOpeningTime;
-        _timeout = 30;
-    } else {
-        marketLockingTime = _marketOpeningTime.add(604800); // one week
-        _timeout = 86400; // 24 hours
-    }
+        uint32 _timeout;
+        // timeout = how long realitio waits for a dispute before confirming an answer
+        // set to 24 hours. should this be hardcoded or might we want to change this?
+        if (_testMode) {
+            marketLockingTime = _marketOpeningTime;
+            _timeout = 30;
+        } else {
+            marketLockingTime = _marketOpeningTime.add(604800); // one week
+            _timeout = 86400; // 24 hours
+        }
 
-    // Create the question on Realitio
-    uint256 _templateId = 2;
-    uint256 _nonce = now; // <- should probably change this to zero for mainnet
-    questionId = _postQuestion(
-        _templateId,
-        _question,
-        _arbitrator,
-        _timeout,
-        _marketResolutionTime,
-        _nonce
-    );
+        // Create the question on Realitio
+        uint256 _templateId = 2;
+        uint256 _nonce = now; // <- should probably change this to zero for mainnet
+        questionId = _postQuestion(
+            _templateId,
+            _question,
+            _arbitrator,
+            _timeout,
+            _marketResolutionTime,
+            _nonce
+        );
     }
 
     ////////////////////////////////////
@@ -133,9 +133,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     function createTokenContract(
         string calldata _outcomeName,
         string calldata _tokenName
-        ) external onlyOwner checkState(States.SETUP) {
+    ) external onlyOwner checkState(States.SETUP) {
         outcomeNames.push(_outcomeName);
-        Token tokenContract = new Token({ _tokenName: _tokenName });
+        Token tokenContract = new Token({_tokenName: _tokenName});
         tokens.push(tokenContract);
         tokenContractsCreated = tokenContractsCreated.add(1);
         if (tokenContractsCreated == numberOfOutcomes) {
@@ -147,7 +147,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States currentState) {
-        require(state == currentState, "function cannot be called at this time");
+        require(
+            state == currentState,
+            "function cannot be called at this time"
+        );
         _;
     }
 
@@ -158,7 +161,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return participants.length;
     }
 
-    function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
+    function getParticipantsBet(uint256 _outcome)
+        public
+        view
+        returns (uint256)
+    {
         Token _token = Token(tokens[_outcome]);
         return _token.balanceOf(msg.sender);
     }
@@ -178,10 +185,16 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
         if (_userBetOnWinningOutcome > 0) {
             uint256 _totalInterest = getTotalInterest();
-            uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(betsWithdrawnPerOutcome[winningOutcome]);
+
+                uint256 _totalRemainingBetsOnWinningOutcome
+             = totalBetsPerOutcome[winningOutcome].sub(
+                betsWithdrawnPerOutcome[winningOutcome]
+            );
             if (_totalRemainingBetsOnWinningOutcome > 0) {
-            _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(_totalRemainingBetsOnWinningOutcome);
-            } 
+                _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(
+                    _totalRemainingBetsOnWinningOutcome
+                );
+            }
         }
         return _winnings;
     }
@@ -206,12 +219,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ) internal returns (bytes32) {
         return
             realitio.askQuestion(
-            template_id,
-            question,
-            arbitrator,
-            timeout,
-            opening_ts,
-            nonce
+                template_id,
+                question,
+                arbitrator,
+                timeout,
+                opening_ts,
+                nonce
             );
     }
 
@@ -239,9 +252,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @notice common function for all incoming DAI transfers
     function _receiveCash(address _from, uint256 _amount) internal {
         require(
-        dai.transferFrom(_from, address(this), _amount),
-        "Cash transfer failed"
-    );
+            dai.transferFrom(_from, address(this), _amount),
+            "Cash transfer failed"
+        );
     }
 
     /// @notice mints Dai, will only work on a testnet
@@ -270,7 +283,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         external
         checkState(States.OPEN)
         whenNotPaused
-        {
+    {
+        require(
+            dai.transferFrom(msg.sender, address(this), _dai),
+            "Dai transfer failed"
+        );
         Token _token = Token(tokens[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
         emit ParticipantEntered(msg.sender);
@@ -309,7 +326,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         checkState(States.WITHDRAW)
         whenNotPaused
         nonReentrant
-        {
+    {
         require(!withdrawnBool[msg.sender], "Already withdrawn");
         withdrawnBool[msg.sender] = true;
         uint256 _winnings = getWinnings(winningOutcome);
@@ -331,9 +348,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             Token _token = Token(tokens[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
-            _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
-            betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetsAllOutcomes);
-            _token.burn(msg.sender, _userBetThisOutcome);
+                _userBetsAllOutcomes = _userBetsAllOutcomes.add(
+                    _userBetThisOutcome
+                );
+                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(
+                    _userBetsAllOutcomes
+                );
+                _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
         betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
