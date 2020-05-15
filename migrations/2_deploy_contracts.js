@@ -17,7 +17,7 @@ const daiAddressKovan = '0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD';
 // market details DUMMY/TESTING DATA ONLY, NOT FOR MAINNET
 const marketOpeningTime = 0;
 const marketResolutionTime = 0;
-const arbitrator = "0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0";
+const arbitrator = "0xd47f72a2d1d0E91b0Ec5e5f5d02B2dc26d00A14D"; // kleros mainnet address. 
 const numberOfOutcomes = 2;
 const owner = "0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe";
 const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
