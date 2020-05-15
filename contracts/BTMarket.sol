@@ -25,7 +25,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     IRealitio public realitio;
 
     //////// Setup ////////
-    uint256 private tokenContractsCreated;
+    uint256 public tokenContractsCreated;
 
     //////// Market Details ////////
     uint256 public marketOpeningTime; // when the market is opened for bets
