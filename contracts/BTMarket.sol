@@ -284,10 +284,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         checkState(States.OPEN)
         whenNotPaused
     {
-        require(
-            dai.transferFrom(msg.sender, address(this), _dai),
-            "Dai transfer failed"
-        );
         Token _token = Token(tokens[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
         emit ParticipantEntered(msg.sender);
