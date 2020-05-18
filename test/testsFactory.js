@@ -75,7 +75,7 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.determineWinner();
 
     // check returned deposit + winnings for user2 and user3
-    assertReturn(user2, stake2, stake3); // user/staked on winning/staked on losing
+    assertReturn(user2, stake3, stake2); // user/staked on winning/staked on losing
     assertReturn(user3, stake4, 0);
 
     // check returned deposit for losers user0 and user1
