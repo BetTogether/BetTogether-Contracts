@@ -22,46 +22,17 @@ const question = 'Who will win the 2020 US General Election␟"Donald Trump","Jo
 
 // Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
 module.exports = function (deployer, network) {
-    if (network === 'develop') {
-        deployer.deploy(DaiMockup).then((deployedDai) => {
-            return deployer.deploy(aTokenMockup, deployedDai.address).then((deployedaToken) => {
-                return deployer.deploy(RealitioMockup).then((deployedRealitio) => {
-                    return deployer.deploy(
-                        BTMarket,
-                        deployedDai.address,
-                        deployedaToken.address,
-                        deployedaToken.address,
-                        deployedaToken.address,
-                        deployedRealitio.address,
-                        marketOpeningTime,
-                        marketResolutionTime,
-                        arbitrator,
-                        question,
-                        numberOfOutcomes,
-                        owner,
-                        true
-                    );
-                });
-            });
-        });
-    } else if (network === 'kovan') {
-        // factory deploy
-        // deployer.deploy(
-        //   BTMarketFactory,
-        //   daiAddressKovan,
-        //   aaveAtokenAddressKovan,
-        //   aaveLendingPoolAddressKovan,
-        //   aaveLendingPoolCoreAddressKovan,
-        //   realitioAddressKovan
-        // );
-        // market deploy
-        deployer.deploy(
+  if (network === 'develop') {
+    deployer.deploy(DaiMockup).then((deployedDai) => {
+      return deployer.deploy(aTokenMockup, deployedDai.address).then((deployedaToken) => {
+        return deployer.deploy(RealitioMockup).then((deployedRealitio) => {
+          return deployer.deploy(
             BTMarket,
-            daiAddressKovan,
-            aaveAtokenAddressKovan,
-            aaveLendingPoolAddressKovan,
-            aaveLendingPoolCoreAddressKovan,
-            realitioAddressKovan,
+            deployedDai.address,
+            deployedaToken.address,
+            deployedaToken.address,
+            deployedaToken.address,
+            deployedRealitio.address,
             marketOpeningTime,
             marketResolutionTime,
             arbitrator,
@@ -69,6 +40,35 @@ module.exports = function (deployer, network) {
             numberOfOutcomes,
             owner,
             true
-        );
-    }
+          );
+        });
+      });
+    });
+  } else if (network === 'kovan') {
+    // factory deploy
+    // deployer.deploy(
+    //   BTMarketFactory,
+    //   daiAddressKovan,
+    //   aaveAtokenAddressKovan,
+    //   aaveLendingPoolAddressKovan,
+    //   aaveLendingPoolCoreAddressKovan,
+    //   realitioAddressKovan
+    // );
+    // market deploy
+    deployer.deploy(
+      BTMarket,
+      daiAddressKovan,
+      aaveAtokenAddressKovan,
+      aaveLendingPoolAddressKovan,
+      aaveLendingPoolCoreAddressKovan,
+      realitioAddressKovan,
+      marketOpeningTime,
+      marketResolutionTime,
+      arbitrator,
+      question,
+      numberOfOutcomes,
+      owner,
+      true
+    );
+  }
 };

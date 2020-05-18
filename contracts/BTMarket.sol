@@ -290,7 +290,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         require(!withdrawnBool[msg.sender], 'Already withdrawn');
         withdrawnBool[msg.sender] = true;
         uint256 _winnings = getWinnings(winningOutcome);
-        uint256 _userBetsAllOutcomes = _getUserBetsAndBurnTokens();
+        uint256 _userBetsAllOutcomes = _getUserBetsAllOutcomesAndBurnTokens();
         uint256 _daiToSend = _winnings.add(_userBetsAllOutcomes);
         // externals
         if (_daiToSend > 0) {
@@ -302,14 +302,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// INTERNAL FUNCTIONS ////////
     ////////////////////////////////////
-    function _getUserBetsAndBurnTokens() internal returns (uint256) {
+    function _getUserBetsAllOutcomesAndBurnTokens() internal returns (uint256) {
         uint256 _userBetsAllOutcomes;
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             Token _token = Token(tokens[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
                 _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
-                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetsAllOutcomes);
+                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetThisOutcome);
                 _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
