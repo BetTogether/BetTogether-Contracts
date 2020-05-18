@@ -1,10 +1,10 @@
 # Manually added stuff here
 # buidler
-artifactsBuidler/
+abis(Buidler)/
 cache/
 
 # truffle
-artifactsTruffle/
+abis/
 
 # Created by https://www.gitignore.io/api/git,node,linux,macos,windows,solidity,visualstudiocode
 # Edit at https://www.gitignore.io/?templates=git,node,linux,macos,windows,solidity,visualstudiocode
