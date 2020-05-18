@@ -18,4 +18,6 @@ interface Dai {
     ) external returns (bool);
 
     function mint(uint256) external;
+
+    function allowance(address owner, address spender) external returns (uint256);
 }

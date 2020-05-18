@@ -16,6 +16,6 @@ module.exports = {
     },
   },
   paths: {
-    artifacts: './artifactsBuidler',
+    artifacts: './abis(Buidler)',
   },
 };

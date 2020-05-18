@@ -7,7 +7,7 @@ const MNEMONIC = process.env.MNEMONIC;
 
 module.exports = {
   plugins: ['truffle-security'],
-  contracts_build_directory: path.join(__dirname, './artifactsTruffle'),
+  contracts_build_directory: path.join(__dirname, './abis'),
   networks: {
     develop: {
       host: '127.0.0.1',
