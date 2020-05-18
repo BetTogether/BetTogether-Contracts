@@ -44,6 +44,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// Betting variables ////////
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
+    mapping(uint256 => uint256) public usersPerOutcome;
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
@@ -255,7 +256,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     function placeBet(uint256 _outcome, uint256 _dai) external checkState(States.OPEN) whenNotPaused {
         Token _token = Token(tokens[_outcome]);
-        if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
+        if (_token.balanceOf(msg.sender) == 0) {
+            participants.push(msg.sender);
+            usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
+        }
         emit ParticipantEntered(msg.sender);
         _token.mint(msg.sender, _dai);
         totalBets = totalBets.add(_dai);
