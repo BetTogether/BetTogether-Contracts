@@ -1,11 +1,11 @@
 pragma solidity 0.6.8;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./BTMarket.sol";
-import "./interfaces/IAave.sol";
-import "./interfaces/IDai.sol";
-import "./interfaces/IRealitio.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/utils/Pausable.sol';
+import './BTMarket.sol';
+import './interfaces/IAave.sol';
+import './interfaces/IDai.sol';
+import './interfaces/IRealitio.sol';
 
 
 contract BTMarketFactory is Ownable, Pausable {
@@ -20,10 +20,7 @@ contract BTMarketFactory is Ownable, Pausable {
     event MarketCreated(address contractAddress);
 
     modifier createdByThisFactory(address marketAddress) {
-        require(
-            mappingOfMarkets[marketAddress],
-            "Must've been created by the corresponding factory"
-        );
+        require(mappingOfMarkets[marketAddress], "Must've been created by the corresponding factory");
         _;
     }
 

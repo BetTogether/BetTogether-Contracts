@@ -1,14 +1,14 @@
 pragma solidity 0.6.8;
 
-import "@nomiclabs/buidler/console.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IAave.sol";
-import "./interfaces/IDai.sol";
-import "./interfaces/IRealitio.sol";
-import "./Token.sol";
+import '@nomiclabs/buidler/console.sol';
+import '@openzeppelin/contracts/math/SafeMath.sol';
+import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/utils/Pausable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+import './interfaces/IAave.sol';
+import './interfaces/IDai.sol';
+import './interfaces/IRealitio.sol';
+import './Token.sol';
 
 
 contract BTMarket is Ownable, Pausable, ReentrancyGuard {
@@ -100,14 +100,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
-        questionId = _postQuestion(
-            _templateId,
-            _question,
-            _arbitrator,
-            _timeout,
-            _marketResolutionTime,
-            _nonce
-        );
+        questionId = _postQuestion(_templateId, _question, _arbitrator, _timeout, _marketResolutionTime, _nonce);
     }
 
     ////////////////////////////////////
@@ -130,10 +123,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
     }
 
-    function createTokenContract(
-        string calldata _outcomeName,
-        string calldata _tokenName
-    ) external onlyOwner checkState(States.SETUP) {
+    function createTokenContract(string calldata _outcomeName, string calldata _tokenName)
+        external
+        onlyOwner
+        checkState(States.SETUP)
+    {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _tokenName});
         tokens.push(tokenContract);
@@ -147,10 +141,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States currentState) {
-        require(
-            state == currentState,
-            "function cannot be called at this time"
-        );
+        require(state == currentState, 'function cannot be called at this time');
         _;
     }
 
@@ -161,11 +152,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return participants.length;
     }
 
-    function getParticipantsBet(uint256 _outcome)
-        public
-        view
-        returns (uint256)
-    {
+    function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
         Token _token = Token(tokens[_outcome]);
         return _token.balanceOf(msg.sender);
     }
@@ -186,14 +173,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         if (_userBetOnWinningOutcome > 0) {
             uint256 _totalInterest = getTotalInterest();
 
-                uint256 _totalRemainingBetsOnWinningOutcome
-             = totalBetsPerOutcome[winningOutcome].sub(
+            uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(
                 betsWithdrawnPerOutcome[winningOutcome]
             );
             if (_totalRemainingBetsOnWinningOutcome > 0) {
-                _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(
-                    _totalRemainingBetsOnWinningOutcome
-                );
+                _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(_totalRemainingBetsOnWinningOutcome);
             }
         }
         return _winnings;
@@ -217,15 +201,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         uint32 opening_ts,
         uint256 nonce
     ) internal returns (bytes32) {
-        return
-            realitio.askQuestion(
-                template_id,
-                question,
-                arbitrator,
-                timeout,
-                opening_ts,
-                nonce
-            );
+        return realitio.askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
 
     /// @notice gets the winning outcome from realitio
@@ -246,15 +222,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice common function for all outgoing DAI transfers
     function _sendCash(address _to, uint256 _amount) internal {
-        require(dai.transfer(_to, _amount), "Cash transfer failed");
+        require(dai.transfer(_to, _amount), 'Cash transfer failed');
     }
 
     /// @notice common function for all incoming DAI transfers
     function _receiveCash(address _from, uint256 _amount) internal {
-        require(
-            dai.transferFrom(_from, address(this), _amount),
-            "Cash transfer failed"
-        );
+        require(dai.transferFrom(_from, address(this), _amount), 'Cash transfer failed');
     }
 
     /// @notice mints Dai, will only work on a testnet
@@ -279,11 +252,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
-    function placeBet(uint256 _outcome, uint256 _dai)
-        external
-        checkState(States.OPEN)
-        whenNotPaused
-    {
+    function placeBet(uint256 _outcome, uint256 _dai) external checkState(States.OPEN) whenNotPaused {
         Token _token = Token(tokens[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) participants.push(msg.sender);
         emit ParticipantEntered(msg.sender);
@@ -299,7 +268,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function determineWinner() external whenNotPaused {
-        require(_isQuestionFinalized(), "Oracle has not finalised");
+        require(_isQuestionFinalized(), 'Oracle has not finalised');
         winningOutcome = _determineWinner();
         incrementState();
     }
@@ -317,13 +286,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    function withdraw()
-        external
-        checkState(States.WITHDRAW)
-        whenNotPaused
-        nonReentrant
-    {
-        require(!withdrawnBool[msg.sender], "Already withdrawn");
+    function withdraw() external checkState(States.WITHDRAW) whenNotPaused nonReentrant {
+        require(!withdrawnBool[msg.sender], 'Already withdrawn');
         withdrawnBool[msg.sender] = true;
         uint256 _winnings = getWinnings(winningOutcome);
         uint256 _userBetsAllOutcomes = _getUserBetsAndBurnTokens();
@@ -344,12 +308,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             Token _token = Token(tokens[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
-                _userBetsAllOutcomes = _userBetsAllOutcomes.add(
-                    _userBetThisOutcome
-                );
-                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(
-                    _userBetsAllOutcomes
-                );
+                _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
+                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetsAllOutcomes);
                 _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
