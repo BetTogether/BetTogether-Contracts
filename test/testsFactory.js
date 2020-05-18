@@ -17,93 +17,94 @@ const NON_OCCURING = 0;
 const OCCURING = 1;
 const stake0 = 200;
 const stake1 = 300;
-const stake2 = 100;
-const stake3 = 400;
-const totalStake = stake0 + stake1 + stake2 + stake3;
-const totalWinningStake = stake2 + stake3;
+const stake2 = 500;
+const stake3 = 100;
+const stake4 = 400;
+const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+const totalWinningStake = stake3 + stake4;
 const totalInterest = totalStake * 0.1;
 
 contract('BetTogetherTests', (accounts) => {
-    user0 = accounts[0];
-    user1 = accounts[1];
-    user2 = accounts[2];
-    user3 = accounts[3];
-    user4 = accounts[4];
-    user5 = accounts[5];
-    user6 = accounts[6];
-    user7 = accounts[7];
-    user8 = accounts[8];
+  user0 = accounts[0];
+  user1 = accounts[1];
+  user2 = accounts[2];
+  user3 = accounts[3];
+  user4 = accounts[4];
+  user5 = accounts[5];
+  user6 = accounts[6];
+  user7 = accounts[7];
+  user8 = accounts[8];
 
-    beforeEach(async () => {
-        dai = await DaiMockup.new();
-        aToken = await aTokenMockup.new(dai.address);
-        realitio = await RealitioMockup.new();
-        betTogetherFactory = await BetTogetherFactory.new(
-            dai.address,
-            aToken.address,
-            aToken.address,
-            aToken.address,
-            realitio.address
-        );
-        await betTogetherFactory.createMarket(
-            eventName,
-            marketOpeningTime,
-            marketResolutionTime,
-            arbitrator,
-            question,
-            numberOfOutcomes
-        );
+  beforeEach(async () => {
+    dai = await DaiMockup.new();
+    aToken = await aTokenMockup.new(dai.address);
+    realitio = await RealitioMockup.new();
+    betTogetherFactory = await BetTogetherFactory.new(
+      dai.address,
+      aToken.address,
+      aToken.address,
+      aToken.address,
+      realitio.address
+    );
+    await betTogetherFactory.createMarket(
+      eventName,
+      marketOpeningTime,
+      marketResolutionTime,
+      arbitrator,
+      question,
+      numberOfOutcomes
+    );
+  });
+
+  it('betting leads to winner receiving stake and interest, loser receives stake back', async () => {
+    marketAddress = await betTogetherFactory.markets.call(0);
+    betTogether = await BetTogether.at(marketAddress);
+    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
+    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
+    await betTogether.incrementState();
+
+    placeBet(user0, NON_OCCURING, stake0);
+    placeBet(user1, NON_OCCURING, stake1);
+    placeBet(user2, NON_OCCURING, stake2);
+    placeBet(user2, OCCURING, stake3);
+    placeBet(user3, OCCURING, stake4);
+
+    await aToken.generate10PercentInterest(betTogether.address);
+    await betTogether.incrementState();
+    await realitio.setResult(OCCURING);
+    await betTogether.determineWinner();
+
+    // check returned deposit + winnings for user2 and user3
+    assertReturn(user2, stake2, stake3); // user/staked on winning/staked on losing
+    assertReturn(user3, stake4, 0);
+
+    // check returned deposit for losers user0 and user1
+    assertReturn(user0, 0, stake0);
+    assertReturn(user1, 0, stake1);
+
+    // check totalBets and betsWithdrawn
+    totalBets = await betTogether.totalBets.call();
+    assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
+    betsWithdrawn = await betTogether.betsWithdrawn.call();
+    assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+  });
+
+  async function placeBet(user, outcome, stake) {
+    await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
+      from: user,
     });
+  }
 
-    it('betting leads to winner receiving stake and interest, loser receives stake back', async () => {
-        marketAddress = await betTogetherFactory.markets.call(0);
-        betTogether = await BetTogether.at(marketAddress);
-        await betTogether.createTokenContract('Donald Trump', 'MBtrump');
-        await betTogether.createTokenContract('Joe Biden', 'MBbiden');
-        await betTogether.incrementState();
-
-        placeBet(user0, NON_OCCURING, stake0);
-        placeBet(user1, NON_OCCURING, stake1);
-        placeBet(user2, OCCURING, stake2);
-        placeBet(user3, OCCURING, stake3);
-
-        await aToken.generate10PercentInterest(betTogether.address);
-        await betTogether.incrementState();
-        await realitio.setResult(OCCURING);
-        await betTogether.determineWinner();
-
-        // check returned deposit + winnings for user2 and user3
-        assertReturn(user2, stake2, true);
-        assertReturn(user3, stake3, true);
-
-        // check returned deposit for losers user0 and user1
-        assertReturn(user0, stake0, false);
-        assertReturn(user1, stake1, false);
-
-        // check totalBets and betsWithdrawn
-        totalBets = await betTogether.totalBets.call();
-        assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
-        betsWithdrawn = await betTogether.betsWithdrawn.call();
-        assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+  async function assertReturn(user, stakeOnWinning, stakeOnLosing) {
+    await betTogether.withdraw({
+      from: user,
     });
+    var daiSentUser = await dai.balanceOf(user);
+    var withdrawn = stakeOnWinning + stakeOnLosing;
 
-    async function placeBet(user, outcome, stake) {
-        await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
-            from: user,
-        });
+    if (stakeOnWinning > 0) {
+      withdrawn = withdrawn + (stakeOnWinning / totalWinningStake) * totalInterest;
     }
-
-    async function assertReturn(user, stake, winner) {
-        await betTogether.withdraw({
-            from: user,
-        });
-        var daiSentUser = await dai.balanceOf(user);
-        var withdrawn;
-        if (winner) {
-            withdrawn = stake + (stake / totalWinningStake) * totalInterest;
-        } else {
-            withdrawn = stake;
-        }
-        assert.equal(daiSentUser, web3.utils.toWei(withdrawn.toString(), 'ether'));
-    }
+    assert.equal(daiSentUser, web3.utils.toWei(withdrawn.toString(), 'ether'));
+  }
 });
