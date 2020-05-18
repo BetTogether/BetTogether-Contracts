@@ -19,6 +19,7 @@ const arbitrator = '0xd47f72a2d1d0E91b0Ec5e5f5d02B2dc26d00A14D'; // kleros mainn
 const numberOfOutcomes = 2;
 const owner = '0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe';
 const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
+const eventName = 'Who will win the 2020 US General Election';
 
 // Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
 module.exports = function (deployer, network) {
@@ -62,6 +63,7 @@ module.exports = function (deployer, network) {
       aaveLendingPoolAddressKovan,
       aaveLendingPoolCoreAddressKovan,
       realitioAddressKovan,
+      eventName,
       marketOpeningTime,
       marketResolutionTime,
       arbitrator,
