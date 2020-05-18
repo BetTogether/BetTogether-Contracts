@@ -1,1 +1,1 @@
-const BTMarket = artifacts.require('BTMarket');
+const BTMarket = artifacts.require("BTMarket");

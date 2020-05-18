@@ -1,1 +1,1 @@
-const BTMarketFactory = artifacts.require('BTMarketFactory');
+const BTMarketFactory = artifacts.require("BTMarketFactory");
