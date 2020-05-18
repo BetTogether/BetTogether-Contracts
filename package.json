@@ -33,7 +33,7 @@
     }
   },
   "scripts": {
-    "prettier": "prettier --write **/*.{js,sol}",
+    "prettier": "prettier --write '**/*.{js,sol}'",
     "pretty-quick": "pretty-quick"
   }
 }
