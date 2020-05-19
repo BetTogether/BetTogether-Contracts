@@ -56,7 +56,7 @@ contract('BetTogetherTests', (accounts) => {
     );
   });
 
-  it('betting leads to winner receiving stake and interest, loser receives stake back', async () => {
+  it('betting leads to winners receiving stake and interest, losers receiving their stake back', async () => {
     marketAddress = await betTogetherFactory.markets.call(0);
     betTogether = await BetTogether.at(marketAddress);
     await betTogether.createTokenContract('Donald Trump', 'MBtrump');
@@ -75,15 +75,15 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.determineWinner();
 
     // check returned deposit + winnings for user2 and user3
-    let userResult = await getActualAndExpectedBalance(user2, stake3, stake2); // user/staked on winning/staked on losing
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake3, stake2); // user/staked on winning/staked on losing
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    userResult = await getActualAndExpectedBalance(user3, stake4, 0);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user3, stake4, 0);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check returned deposit for losers user0 and user1
-    userResult = await getActualAndExpectedBalance(user0, 0, stake0);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    userResult = await getActualAndExpectedBalance(user1, 0, stake1);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check totalBets and betsWithdrawn
@@ -99,7 +99,7 @@ contract('BetTogetherTests', (accounts) => {
     });
   }
 
-  async function getActualAndExpectedBalance(user, stakeOnWinning, stakeOnLosing) {
+  async function withdrawAndReturnActualAndExpectedBalance(user, stakeOnWinning, stakeOnLosing) {
     await betTogether.withdraw({
       from: user,
     });
