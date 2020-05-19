@@ -39,7 +39,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public numberOfOutcomes;
     enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
-    bool public testMode;
 
     //////// Betting variables ////////
     mapping(uint256 => uint256) public totalBetsPerOutcome;
@@ -61,13 +60,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         IAaveLendingPoolCore _aaveLpcoreAddress,
         IRealitio _realitioAddress,
         string memory _eventName,
-        uint256 _marketOpeningTime,
-        uint32 _marketResolutionTime,
+        uint256[3] memory _marketTimes,
+        uint32 _timeout, // how long realitio waits for a dispute before confirming an answer
         address _arbitrator,
         string memory _question,
         uint256 _numberOfOutcomes,
-        address _owner,
-        bool _testMode
+        address _owner
     ) public {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
@@ -83,26 +81,15 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
         // Pass arguments to public variables
         eventName = _eventName;
-        marketOpeningTime = _marketOpeningTime;
-        marketResolutionTime = _marketResolutionTime;
+        marketOpeningTime = _marketTimes[0];
+        marketResolutionTime = uint32(_marketTimes[1]);
+        marketLockingTime = _marketTimes[2];
         numberOfOutcomes = _numberOfOutcomes;
-        testMode = _testMode;
-
-        uint32 _timeout;
-        // timeout = how long realitio waits for a dispute before confirming an answer
-        // set to 24 hours. should this be hardcoded or might we want to change this?
-        if (_testMode) {
-            marketLockingTime = _marketOpeningTime;
-            _timeout = 30;
-        } else {
-            marketLockingTime = _marketOpeningTime.add(604800); // one week
-            _timeout = 86400; // 24 hours
-        }
 
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
-        questionId = _postQuestion(_templateId, _question, _arbitrator, _timeout, _marketResolutionTime, _nonce);
+        questionId = _postQuestion(_templateId, _question, _arbitrator, _timeout, marketResolutionTime, _nonce);
     }
 
     ////////////////////////////////////
@@ -254,7 +241,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
-    function placeBet(uint256 _outcome, uint256 _dai) external checkState(States.OPEN) whenNotPaused {
+    function _placeBet(uint256 _outcome, uint256 _dai) internal {
         Token _token = Token(tokens[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
@@ -264,11 +251,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         _token.mint(msg.sender, _dai);
         totalBets = totalBets.add(_dai);
         totalBetsPerOutcome[_outcome] = totalBetsPerOutcome[_outcome].add(_dai);
-        if (testMode) {
-            _mintCash(_dai);
-        } else {
-            _receiveCash(msg.sender, _dai);
-        }
+    }
+
+    function placeBet(uint256 _outcome, uint256 _dai) external virtual checkState(States.OPEN) whenNotPaused {
+        _placeBet(_outcome, _dai);
+        _receiveCash(msg.sender, _dai);
         _sendToAave(_dai);
     }
 
