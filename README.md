@@ -15,12 +15,11 @@
 
 ### Environment Variables
 
-1. Inside the root directory, create a `.env` file.
-2. Copy and paste the contents from `.env.example` into the .env file.
-3. Fill out the corresponding variables with your credientials.
-4. Verify .env is in your .gitignore
+Inside the root directory, create a `.env` file, and add the keys MNEMONIC and INFURA_KEY.
 
 ## Usage
+
+To deploy, run `truffle migrate --reset --network kovan` this will deploy the BTMarketFactory contract. You can then copy the BTMarketFactory.json file over to the Client repo in the src/abis directory, then follow the readme of that repo to test the app.
 
 ## Issues
 
