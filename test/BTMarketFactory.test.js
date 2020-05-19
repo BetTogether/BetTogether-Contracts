@@ -12,6 +12,7 @@ const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
 const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
 const numberOfOutcomes = 2;
 const eventName = 'Who will win the 2020 US General Election';
+const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
 
 const NON_OCCURING = 0;
 const OCCURING = 1;
@@ -56,7 +57,7 @@ contract('BetTogetherTests', (accounts) => {
     );
   });
 
-  it('betting leads to winners receiving stake and interest, losers receiving their stake back', async () => {
+  it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
     marketAddress = await betTogetherFactory.markets.call(0);
     betTogether = await BetTogether.at(marketAddress);
     await betTogether.createTokenContract('Donald Trump', 'MBtrump');
@@ -91,6 +92,33 @@ contract('BetTogetherTests', (accounts) => {
     assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
     betsWithdrawn = await betTogether.betsWithdrawn.call();
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+  });
+
+  it('check market states transition', async () => {
+    marketAddress = await betTogetherFactory.markets.call(0);
+    betTogether = await BetTogether.at(marketAddress);
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.SETUP);
+    await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
+    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
+    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WAITING);
+    await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
+
+    await betTogether.incrementState();
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
+
+    await placeBet(user0, NON_OCCURING, stake0);
+    await betTogether.incrementState(); // test mode allows to switch to LOCKED instantly
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
+    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
+    await expect(betTogether.withdraw({from: user0})).to.be.reverted;
+
+    await realitio.setResult(OCCURING);
+    await betTogether.determineWinner();
+
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
+    betTogether.withdraw({from: user0}); // should succeed now
+    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
   });
 
   async function placeBet(user, outcome, stake) {
