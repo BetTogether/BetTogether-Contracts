@@ -47,30 +47,30 @@ module.exports = function (deployer, network) {
     });
   } else if (network === 'kovan') {
     // factory deploy
-    // deployer.deploy(
-    //   BTMarketFactory,
-    //   daiAddressKovan,
-    //   aaveAtokenAddressKovan,
-    //   aaveLendingPoolAddressKovan,
-    //   aaveLendingPoolCoreAddressKovan,
-    //   realitioAddressKovan
-    // );
-    // market deploy
     deployer.deploy(
-      BTMarket,
+      BTMarketFactory,
       daiAddressKovan,
       aaveAtokenAddressKovan,
       aaveLendingPoolAddressKovan,
       aaveLendingPoolCoreAddressKovan,
-      realitioAddressKovan,
-      eventName,
-      marketOpeningTime,
-      marketResolutionTime,
-      arbitrator,
-      question,
-      numberOfOutcomes,
-      owner,
-      true
+      realitioAddressKovan
     );
+    // market deploy
+    // deployer.deploy(
+    //   BTMarket,
+    //   daiAddressKovan,
+    //   aaveAtokenAddressKovan,
+    //   aaveLendingPoolAddressKovan,
+    //   aaveLendingPoolCoreAddressKovan,
+    //   realitioAddressKovan,
+    //   eventName,
+    //   marketOpeningTime,
+    //   marketResolutionTime,
+    //   arbitrator,
+    //   question,
+    //   numberOfOutcomes,
+    //   owner,
+    //   true
+    // );
   }
 };
