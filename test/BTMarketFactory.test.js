@@ -63,11 +63,11 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.createTokenContract('Joe Biden', 'MBbiden');
     await betTogether.incrementState();
 
-    placeBet(user0, NON_OCCURING, stake0);
-    placeBet(user1, NON_OCCURING, stake1);
-    placeBet(user2, NON_OCCURING, stake2);
-    placeBet(user2, OCCURING, stake3);
-    placeBet(user3, OCCURING, stake4);
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user1, NON_OCCURING, stake1);
+    await placeBet(user2, NON_OCCURING, stake2);
+    await placeBet(user2, OCCURING, stake3);
+    await placeBet(user3, OCCURING, stake4);
 
     await aToken.generate10PercentInterest(betTogether.address);
     await betTogether.incrementState();
@@ -75,12 +75,16 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.determineWinner();
 
     // check returned deposit + winnings for user2 and user3
-    assertReturn(user2, stake3, stake2); // user/staked on winning/staked on losing
-    assertReturn(user3, stake4, 0);
+    let userResult = await getActualAndExpectedBalance(user2, stake3, stake2); // user/staked on winning/staked on losing
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+    userResult = await getActualAndExpectedBalance(user3, stake4, 0);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check returned deposit for losers user0 and user1
-    assertReturn(user0, 0, stake0);
-    assertReturn(user1, 0, stake1);
+    userResult = await getActualAndExpectedBalance(user0, 0, stake0);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+    userResult = await getActualAndExpectedBalance(user1, 0, stake1);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check totalBets and betsWithdrawn
     totalBets = await betTogether.totalBets.call();
@@ -95,16 +99,20 @@ contract('BetTogetherTests', (accounts) => {
     });
   }
 
-  async function assertReturn(user, stakeOnWinning, stakeOnLosing) {
+  async function getActualAndExpectedBalance(user, stakeOnWinning, stakeOnLosing) {
     await betTogether.withdraw({
       from: user,
     });
-    var daiSentUser = await dai.balanceOf(user);
-    var withdrawn = stakeOnWinning + stakeOnLosing;
+    let actualBalance = await dai.balanceOf(user);
+    let expectedBalance = stakeOnWinning + stakeOnLosing;
 
     if (stakeOnWinning > 0) {
-      withdrawn = withdrawn + (stakeOnWinning / totalWinningStake) * totalInterest;
+      let shareOfInterest = (stakeOnWinning / totalWinningStake) * totalInterest;
+      expectedBalance += shareOfInterest;
     }
-    assert.equal(daiSentUser, web3.utils.toWei(withdrawn.toString(), 'ether'));
+    return {
+      actualBalance: actualBalance,
+      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether'),
+    };
   }
 });
