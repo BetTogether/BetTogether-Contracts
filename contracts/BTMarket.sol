@@ -42,13 +42,17 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     //////// Betting variables ////////
     mapping(uint256 => uint256) public totalBetsPerOutcome;
+    mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
     mapping(uint256 => uint256) public usersPerOutcome;
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
+
+    //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
     uint256 public winningOutcome = 69; // start with incorrect winning outcome
+    bool public questionResolvedInvalid = true; // default to true
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -161,7 +165,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
         if (_userBetOnWinningOutcome > 0) {
             uint256 _totalInterest = getTotalInterest();
-
             uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(
                 betsWithdrawnPerOutcome[winningOutcome]
             );
@@ -170,6 +173,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             }
         }
         return _winnings;
+    }
+
+    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokens
+    /// @dev i.e. as if all the outcomes 'won'
+    function getWinningsInvalid() public view returns (uint256) {
+        uint256 _winningsInvalid;
+        if (totalBetsPerUser[msg.sender] > 0) {
+            uint256 _totalInterest = getTotalInterest();
+            uint256 _totalRemainingBets = totalBets.sub(betsWithdrawn);
+            if (_totalRemainingBets > 0) {
+                _winningsInvalid = (_totalInterest.mul(totalBetsPerUser[msg.sender])).div(_totalRemainingBets);
+            }
+        }
+        return _winningsInvalid;
     }
 
     // need the interest rate for this
@@ -241,17 +258,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
-    function _placeBet(uint256 _outcome, uint256 _dai) internal {
-        Token _token = Token(tokens[_outcome]);
-        if (_token.balanceOf(msg.sender) == 0) {
-            participants.push(msg.sender);
-            usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
-        }
-        emit ParticipantEntered(msg.sender);
-        _token.mint(msg.sender, _dai);
-        totalBets = totalBets.add(_dai);
-        totalBetsPerOutcome[_outcome] = totalBetsPerOutcome[_outcome].add(_dai);
-    }
 
     function placeBet(uint256 _outcome, uint256 _dai) external virtual checkState(States.OPEN) whenNotPaused {
         _placeBet(_outcome, _dai);
@@ -262,6 +268,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     function determineWinner() external whenNotPaused {
         require(_isQuestionFinalized(), 'Oracle has not finalised');
         winningOutcome = _determineWinner();
+        if (winningOutcome != ((2**256) - 1)) {
+            questionResolvedInvalid = false;
+        }
         incrementState();
     }
 
@@ -281,9 +290,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     function withdraw() external checkState(States.WITHDRAW) whenNotPaused nonReentrant {
         require(!withdrawnBool[msg.sender], 'Already withdrawn');
         withdrawnBool[msg.sender] = true;
+        if (!questionResolvedInvalid) {
+            _payoutWinnings();
+        } else {
+            _payoutWinningsInvalid();
+        }
+        _burnUsersTokens();
+    }
+
+    ////////////////////////////////////
+    //////// INTERNAL FUNCTIONS ////////
+    ////////////////////////////////////
+    function _payoutWinnings() internal {
         uint256 _winnings = getWinnings(winningOutcome);
-        uint256 _userBetsAllOutcomes = _getUserBetsAllOutcomesAndBurnTokens();
-        uint256 _daiToSend = _winnings.add(_userBetsAllOutcomes);
+        uint256 _daiToSend = _winnings.add(totalBetsPerUser[msg.sender]);
         // externals
         if (_daiToSend > 0) {
             _redeemFromAave(_daiToSend);
@@ -291,10 +311,30 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    ////////////////////////////////////
-    //////// INTERNAL FUNCTIONS ////////
-    ////////////////////////////////////
-    function _getUserBetsAllOutcomesAndBurnTokens() internal returns (uint256) {
+    function _payoutWinningsInvalid() internal {
+        uint256 _winningsInvalid = getWinningsInvalid();
+        uint256 _daiToSend = _winningsInvalid.add(totalBetsPerUser[msg.sender]);
+        // externals
+        if (_daiToSend > 0) {
+            _redeemFromAave(_daiToSend);
+            _sendCash(msg.sender, _daiToSend);
+        }
+    }
+
+    function _placeBet(uint256 _outcome, uint256 _dai) internal {
+        Token _token = Token(tokens[_outcome]);
+        if (_token.balanceOf(msg.sender) == 0) {
+            participants.push(msg.sender);
+            usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
+        }
+        emit ParticipantEntered(msg.sender);
+        _token.mint(msg.sender, _dai);
+        totalBets = totalBets.add(_dai);
+        totalBetsPerOutcome[_outcome] = totalBetsPerOutcome[_outcome].add(_dai);
+        totalBetsPerUser[msg.sender] = totalBetsPerUser[msg.sender].add(_dai);
+    }
+
+    function _burnUsersTokens() internal {
         uint256 _userBetsAllOutcomes;
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             Token _token = Token(tokens[i]);
@@ -305,8 +345,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
                 _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
+        assert(_userBetsAllOutcomes == totalBetsPerUser[msg.sender]);
         betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
-        return _userBetsAllOutcomes;
     }
 
     ////////////////////////////////////
