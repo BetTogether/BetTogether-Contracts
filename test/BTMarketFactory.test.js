@@ -2,8 +2,8 @@ const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppel
 
 const DaiMockup = artifacts.require('DaiMockup');
 const aTokenMockup = artifacts.require('aTokenMockup');
-const BetTogether = artifacts.require('BTMarket');
-const BetTogetherFactory = artifacts.require('BTMarketFactory');
+const BetTogether = artifacts.require('TestBTMarket');
+const BetTogetherFactory = artifacts.require('TestBTMarketFactory');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 
 const marketOpeningTime = 0;
@@ -50,7 +50,9 @@ contract('BetTogetherTests', (accounts) => {
     await betTogetherFactory.createMarket(
       eventName,
       marketOpeningTime,
+      marketOpeningTime,
       marketResolutionTime,
+      30,
       arbitrator,
       question,
       numberOfOutcomes
