@@ -41,6 +41,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     States public state;
 
     //////// Betting variables ////////
+    mapping(uint256 => uint256[]) public betTimestamps;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
@@ -89,6 +90,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         marketResolutionTime = uint32(_marketTimes[1]);
         marketLockingTime = _marketTimes[2];
         numberOfOutcomes = _numberOfOutcomes;
+
+        //Initialise timestamps with contract creation time
+        for (uint256 i = 0; i < _numberOfOutcomes; i++) {
+            betTimestamps[i].push(now);
+        }
 
         // Create the question on Realitio
         uint256 _templateId = 2;
@@ -322,6 +328,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
+        betTimestamps[_outcome].push(now);
         Token _token = Token(tokens[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
