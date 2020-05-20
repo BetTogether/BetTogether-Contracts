@@ -60,11 +60,7 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
-    marketAddress = await betTogetherFactory.markets.call(0);
-    betTogether = await BetTogether.at(marketAddress);
-    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
-    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
-    await betTogether.incrementState();
+    await prepareForBetting();
 
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, NON_OCCURING, stake1);
@@ -72,10 +68,7 @@ contract('BetTogetherTests', (accounts) => {
     await placeBet(user2, OCCURING, stake3);
     await placeBet(user3, OCCURING, stake4);
 
-    await aToken.generate10PercentInterest(betTogether.address);
-    await betTogether.incrementState();
-    await realitio.setResult(OCCURING);
-    await betTogether.determineWinner();
+    await letOutcomeOccur();
 
     // check returned deposit + winnings for user2 and user3
     let userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake3, stake2); // user/staked on winning/staked on losing
@@ -123,6 +116,38 @@ contract('BetTogetherTests', (accounts) => {
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
     await expect(betTogether.withdraw({from: user0})).to.be.reverted; // not a second time!
   });
+
+  it('one user betting multiple times receives all stake plus total interest', async () => {
+    await prepareForBetting();
+
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user0, NON_OCCURING, stake1);
+    await placeBet(user0, NON_OCCURING, stake2);
+    await placeBet(user0, OCCURING, stake3);
+    await placeBet(user0, OCCURING, stake4);
+
+    await letOutcomeOccur();
+
+    let winningStakeTotal = stake3 + stake4;
+    let losingStakeTotal = stake0 + stake1 + stake2;
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, winningStakeTotal, losingStakeTotal); // user/staked on winning/staked on losing
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+  });
+
+  async function prepareForBetting() {
+    marketAddress = await betTogetherFactory.markets.call(0);
+    betTogether = await BetTogether.at(marketAddress);
+    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
+    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
+    await betTogether.incrementState();
+  }
+
+  async function letOutcomeOccur() {
+    await aToken.generate10PercentInterest(betTogether.address);
+    await betTogether.incrementState();
+    await realitio.setResult(OCCURING);
+    await betTogether.determineWinner();
+  }
 
   async function placeBet(user, outcome, stake) {
     await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
