@@ -87,8 +87,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         // Pass arguments to public variables
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
-        marketResolutionTime = uint32(_marketTimes[1]);
-        marketLockingTime = _marketTimes[2];
+        marketLockingTime = _marketTimes[1];
+        marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _numberOfOutcomes;
 
         //Initialise timestamps with contract creation time
