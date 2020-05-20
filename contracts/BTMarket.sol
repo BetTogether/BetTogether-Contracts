@@ -68,7 +68,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         uint256[3] memory _marketTimes,
         uint32 _timeout, // how long realitio waits for a dispute before confirming an answer
         address _arbitrator,
-        string memory _question,
+        string memory _realitioQuestion,
         uint256 _numberOfOutcomes,
         address _owner
     ) public {
@@ -99,7 +99,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
-        questionId = _postQuestion(_templateId, _question, _arbitrator, _timeout, marketResolutionTime, _nonce);
+        questionId = _postQuestion(_templateId, _realitioQuestion, _arbitrator, _timeout, marketResolutionTime, _nonce);
     }
 
     ////////////////////////////////////
@@ -115,7 +115,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     // you cannot pass an array of strings as an argument
     // string manipulation is also difficult, so it is not easy to parse the relevant
-    // ... info from the _question string. So, manually set this info
+    // ... info from the _realitioQuestion string. So, manually set this info
     // probably redundant, the front end can store this, just adding in case
 
     function setEventName(string calldata _eventName) external onlyOwner {

@@ -17,7 +17,7 @@ contract TestBTMarket is BTMarket {
         string memory _eventName,
         uint256[3] memory _marketTimes,
         address _arbitrator,
-        string memory _question,
+        string memory _realitioQuestion,
         uint256 _numberOfOutcomes,
         address _owner
     )
@@ -32,7 +32,7 @@ contract TestBTMarket is BTMarket {
             _marketTimes,
             30,
             _arbitrator,
-            _question,
+            _realitioQuestion,
             _numberOfOutcomes,
             _owner
         )
