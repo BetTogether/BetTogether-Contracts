@@ -112,15 +112,16 @@ contract('BetTogetherTests', (accounts) => {
     await placeBet(user0, NON_OCCURING, stake0);
     await betTogether.incrementState(); // test mode allows to switch to LOCKED instantly
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
-    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
-    await expect(betTogether.withdraw({from: user0})).to.be.reverted;
+    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted; // too late
+    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // too early
 
     await realitio.setResult(OCCURING);
     await betTogether.determineWinner();
 
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
-    betTogether.withdraw({from: user0}); // should succeed now
+    await betTogether.withdraw({from: user0}); // should succeed now
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
+    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // not a second time!
   });
 
   async function placeBet(user, outcome, stake) {
