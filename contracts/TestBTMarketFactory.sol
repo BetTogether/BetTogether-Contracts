@@ -22,7 +22,7 @@ contract TestBTMarketFactory is BTMarketFactory {
         uint32 _marketResolutionTime,
         uint32 _timeout,
         address _arbitrator,
-        string memory _question,
+        string memory _realitioQuestion,
         uint256 _numberOfOutcomes
     )
         public
@@ -41,7 +41,7 @@ contract TestBTMarketFactory is BTMarketFactory {
             _eventName: _eventName,
             _marketTimes: marketTimes,
             _arbitrator: _arbitrator,
-            _question: _question,
+            _realitioQuestion: _realitioQuestion,
             _numberOfOutcomes: _numberOfOutcomes,
             _owner: msg.sender
         });
