@@ -16,7 +16,7 @@ contract BTMarketFactory is Ownable, Pausable {
     IAaveLendingPoolCore public aaveLendingPoolCore;
     IRealitio public realitio;
     mapping(address => bool) public mappingOfMarkets;
-    address[] public markets;
+    address[] public marketAddresses;
 
     event MarketCreated(address contractAddress);
 
@@ -71,14 +71,14 @@ contract BTMarketFactory is Ownable, Pausable {
             _owner: msg.sender
         });
         address newAddress = address(newContract);
-        markets.push(newAddress);
+        marketAddresses.push(newAddress);
         mappingOfMarkets[newAddress] = true;
         emit MarketCreated(address(newAddress));
         return newContract;
     }
 
     function getMarkets() public view returns (address[] memory) {
-        return markets;
+        return marketAddresses;
     }
 
     function destroy() public onlyOwner whenPaused {

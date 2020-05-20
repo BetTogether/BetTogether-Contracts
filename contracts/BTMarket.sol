@@ -35,7 +35,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     bytes32 public questionId; // the question ID of the question on realitio
     string public eventName;
     string[] public outcomeNames;
-    Token[] public tokens;
+    Token[] public tokenAddresses;
     uint256 public numberOfOutcomes;
     enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
@@ -129,7 +129,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _tokenName});
-        tokens.push(tokenContract);
+        tokenAddresses.push(tokenContract);
         tokenContractsCreated = tokenContractsCreated.add(1);
         if (tokenContractsCreated == numberOfOutcomes) {
             state = States(uint256(state) + 1);
@@ -152,7 +152,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokens[_outcome]);
+        Token _token = Token(tokenAddresses[_outcome]);
         return _token.balanceOf(msg.sender);
     }
 
@@ -166,7 +166,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @dev Returns total winnings for a participant based on current accumulated interest
     /// @dev ... and assuming the passed _outcome wins.
     function getWinnings(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokens[_outcome]);
+        Token _token = Token(tokenAddresses[_outcome]);
         uint256 _winnings;
         uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
         if (_userBetOnWinningOutcome > 0) {
@@ -181,7 +181,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return _winnings;
     }
 
-    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokens
+    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
         uint256 _winningsInvalid;
@@ -301,7 +301,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         } else {
             _payoutWinningsInvalid();
         }
-        _burnUsersTokens();
+        _burnUserstokenAddresses();
     }
 
     ////////////////////////////////////
@@ -329,7 +329,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
         betTimestamps[_outcome].push(now);
-        Token _token = Token(tokens[_outcome]);
+        Token _token = Token(tokenAddresses[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
             usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
@@ -341,10 +341,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         totalBetsPerUser[msg.sender] = totalBetsPerUser[msg.sender].add(_dai);
     }
 
-    function _burnUsersTokens() internal {
+    function _burnUserstokenAddresses() internal {
         uint256 _userBetsAllOutcomes;
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
-            Token _token = Token(tokens[i]);
+            Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
                 _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);

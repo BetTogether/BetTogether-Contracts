@@ -60,7 +60,7 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
-    marketAddress = await betTogetherFactory.markets.call(0);
+    marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     await betTogether.createTokenContract('Donald Trump', 'MBtrump');
     await betTogether.createTokenContract('Joe Biden', 'MBbiden');
@@ -97,7 +97,7 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('check market states transition', async () => {
-    marketAddress = await betTogetherFactory.markets.call(0);
+    marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.SETUP);
     await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
