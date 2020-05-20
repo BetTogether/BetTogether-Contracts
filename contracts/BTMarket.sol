@@ -29,6 +29,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public tokenContractsCreated;
 
     //////// Market Details ////////
+    uint256 public maxInterest; //for the front end
     uint256 public marketOpeningTime; // when the market is opened for bets
     uint256 public marketLockingTime; // when the market is no longer open for bets
     uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
@@ -154,6 +155,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
         Token _token = Token(tokenAddresses[_outcome]);
         return _token.balanceOf(msg.sender);
+    }
+
+    function getMaxTotalInterest() public view returns (uint256) {
+        if (state == States.WITHDRAW) {
+            return maxInterest;
+        } else {
+            return getTotalInterest();
+        }
     }
 
     function getTotalInterest() public view returns (uint256) {
@@ -288,6 +297,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             ((state == States.OPEN) && (marketLockingTime < now)) ||
             ((state == States.LOCKED) && (winningOutcome != 69))
         ) {
+            if (state == States.LOCKED) {
+                maxInterest = getTotalInterest();
+            }
             state = States(uint256(state) + 1);
             emit StateChanged(state);
         }
