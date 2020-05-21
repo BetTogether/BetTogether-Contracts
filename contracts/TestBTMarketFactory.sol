@@ -46,7 +46,7 @@ contract TestBTMarketFactory is BTMarketFactory {
             _owner: msg.sender
         });
         address newAddress = address(newContract);
-        markets.push(newAddress);
+        marketAddresses.push(newAddress);
         mappingOfMarkets[newAddress] = true;
         emit MarketCreated(address(newAddress));
         return newContract;

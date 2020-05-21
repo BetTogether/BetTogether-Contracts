@@ -111,7 +111,7 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('check market states transition', async () => {
-    const marketAddress = await betTogetherFactory.markets.call(0);
+    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.SETUP);
@@ -174,7 +174,7 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   async function prepareForBetting() {
-    const marketAddress = await betTogetherFactory.markets.call(0);
+    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     await betTogether.createTokenContract('Donald Trump', 'MBtrump');
     await betTogether.createTokenContract('Joe Biden', 'MBbiden');

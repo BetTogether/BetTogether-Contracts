@@ -29,19 +29,21 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public tokenContractsCreated;
 
     //////// Market Details ////////
-    uint256 public marketOpeningTime; // when the market is opened for bets
+    uint256 public maxInterest; //for the front end
+    uint256 public marketOpeningTime; // when the market can opened for bets
+    uint256 public marketOpeningTimeActual; //when the market is actually opened
     uint256 public marketLockingTime; // when the market is no longer open for bets
     uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
     bytes32 public questionId; // the question ID of the question on realitio
     string public eventName;
     string[] public outcomeNames;
-    Token[] public tokens;
+    Token[] public tokenAddresses;
     uint256 public numberOfOutcomes;
     enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
 
     //////// Betting variables ////////
-    mapping(uint256 => uint256[]) public betTimestamps;
+    mapping(uint256 => betStruct[]) public betsTracker;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
@@ -49,6 +51,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
+    struct betStruct {
+        uint256 daiBet;
+        uint256 timestamp;
+    }
 
     //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
@@ -91,11 +97,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _numberOfOutcomes;
 
-        //Initialise timestamps with contract creation time
-        for (uint256 i = 0; i < _numberOfOutcomes; i++) {
-            betTimestamps[i].push(now);
-        }
-
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
@@ -129,7 +130,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _tokenName});
-        tokens.push(tokenContract);
+        tokenAddresses.push(tokenContract);
         tokenContractsCreated = tokenContractsCreated.add(1);
         if (tokenContractsCreated == numberOfOutcomes) {
             state = States(uint256(state) + 1);
@@ -152,8 +153,16 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokens[_outcome]);
+        Token _token = Token(tokenAddresses[_outcome]);
         return _token.balanceOf(msg.sender);
+    }
+
+    function getMaxTotalInterest() public view returns (uint256) {
+        if (state == States.WITHDRAW) {
+            return maxInterest;
+        } else {
+            return getTotalInterest();
+        }
     }
 
     function getTotalInterest() public view returns (uint256) {
@@ -166,7 +175,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @dev Returns total winnings for a participant based on current accumulated interest
     /// @dev ... and assuming the passed _outcome wins.
     function getWinnings(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokens[_outcome]);
+        Token _token = Token(tokenAddresses[_outcome]);
         uint256 _winnings;
         uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
         if (_userBetOnWinningOutcome > 0) {
@@ -181,7 +190,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return _winnings;
     }
 
-    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokens
+    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
         uint256 _winningsInvalid;
@@ -288,6 +297,12 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             ((state == States.OPEN) && (marketLockingTime < now)) ||
             ((state == States.LOCKED) && (winningOutcome != 69))
         ) {
+            if (state == States.WAITING) {
+                marketOpeningTimeActual = now;
+            }
+            if (state == States.LOCKED) {
+                maxInterest = getTotalInterest();
+            }
             state = States(uint256(state) + 1);
             emit StateChanged(state);
         }
@@ -301,7 +316,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         } else {
             _payoutWinningsInvalid();
         }
-        _burnUsersTokens();
+        _burnUserstokenAddresses();
     }
 
     ////////////////////////////////////
@@ -328,8 +343,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
-        betTimestamps[_outcome].push(now);
-        Token _token = Token(tokens[_outcome]);
+        betStruct memory _bet;
+        _bet.daiBet = _dai;
+        _bet.timestamp = now;
+        betsTracker[_outcome].push(_bet);
+        Token _token = Token(tokenAddresses[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
             usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
@@ -341,10 +359,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         totalBetsPerUser[msg.sender] = totalBetsPerUser[msg.sender].add(_dai);
     }
 
-    function _burnUsersTokens() internal {
+    function _burnUserstokenAddresses() internal {
         uint256 _userBetsAllOutcomes;
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
-            Token _token = Token(tokens[i]);
+            Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
                 _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
