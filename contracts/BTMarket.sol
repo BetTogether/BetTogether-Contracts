@@ -30,11 +30,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     //////// Market Details ////////
     uint256 public maxInterest; //for the front end
-    uint256 public marketOpeningTime; // when the market is opened for bets
+    uint256 public marketOpeningTime; // when the market can opened for bets
+    uint256 public marketOpeningTimeActual; //when the market is actually opened
     uint256 public marketLockingTime; // when the market is no longer open for bets
     uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
     bytes32 public questionId; // the question ID of the question on realitio
-    uint256 public marketOpeningTimestamp;
     string public eventName;
     string[] public outcomeNames;
     Token[] public tokenAddresses;
@@ -298,7 +298,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             ((state == States.LOCKED) && (winningOutcome != 69))
         ) {
             if (state == States.WAITING) {
-                marketOpeningTimestamp = now;
+                marketOpeningTimeActual = now;
             }
             if (state == States.LOCKED) {
                 maxInterest = getTotalInterest();
