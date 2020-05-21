@@ -33,7 +33,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public marketOpeningTime; // when the market can opened for bets
     uint256 public marketOpeningTimeActual; //when the market is actually opened
     uint256 public marketLockingTime; // when the market is no longer open for bets
-    uint32 public marketExpectedResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
+    uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
     bytes32 public questionId; // the question ID of the question on realitio
     string public eventName;
     string[] public outcomeNames;
@@ -94,20 +94,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
-        marketExpectedResolutionTime = uint32(_marketTimes[2]);
+        marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _numberOfOutcomes;
 
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
-        questionId = _postQuestion(
-            _templateId,
-            _realitioQuestion,
-            _arbitrator,
-            _timeout,
-            marketExpectedResolutionTime,
-            _nonce
-        );
+        questionId = _postQuestion(_templateId, _realitioQuestion, _arbitrator, _timeout, marketResolutionTime, _nonce);
     }
 
     ////////////////////////////////////
@@ -213,7 +206,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     // need the interest rate for this
     // function getEstimatedReturn(uint _outcome) returns (uint) {
-    //     uint _timeLocked = marketExpectedResolutionTime.
+    //     uint _timeLocked = marketResolutionTime.
     // }
 
     ////////////////////////////////////
@@ -318,7 +311,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @dev change state to WITHDRAW to lock contract and return all funds
     /// @dev in case Oracle never resolves
     function circuitBreaker() external {
-        require(now > (marketExpectedResolutionTime + 4 weeks), 'Too early');
+        require(now > (marketResolutionTime + 4 weeks), 'Too early');
         questionResolvedInvalid = true;
         state = States.WITHDRAW;
     }
