@@ -3,8 +3,8 @@
 //const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
-const BetTogether = artifacts.require('TestBTMarket');
-const BetTogetherFactory = artifacts.require('TestBTMarketFactory');
+const BetTogether = artifacts.require('BTMarket');
+const BetTogetherFactory = artifacts.require('BTMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 
@@ -189,6 +189,7 @@ contract('BetTogetherTests', (accounts) => {
   }
 
   async function placeBet(user, outcome, stake) {
+    await dai.mint(web3.utils.toWei(stake.toString(), 'ether'), {from: user});
     await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });

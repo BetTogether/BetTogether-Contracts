@@ -251,11 +251,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         require(dai.transferFrom(_from, address(this), _amount), 'Cash transfer failed');
     }
 
-    /// @notice mints Dai, will only work on a testnet
-    function _mintCash(uint256 _amount) internal {
-        dai.mint(_amount);
-    }
-
     ////////////////////////////////////
     /////// EXTERNAL AAVE CALLS ////////
     ////////////////////////////////////
