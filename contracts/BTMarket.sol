@@ -174,14 +174,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Returns total winnings for a participant based on current accumulated interest
     /// @dev ... and assuming the passed _outcome wins.
-    function getWinnings(uint256 _outcome) public view returns (uint256) {
+    function getWinnings(uint256 _winningOutcome) public view returns (uint256) {
         Token _token = Token(tokenAddresses[_outcome]);
         uint256 _winnings;
         uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
         if (_userBetOnWinningOutcome > 0) {
             uint256 _totalInterest = getTotalInterest();
-            uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(
-                betsWithdrawnPerOutcome[winningOutcome]
+            uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[_winningOutcome].sub(
+                betsWithdrawnPerOutcome[_winningOutcome]
             );
             if (_totalRemainingBetsOnWinningOutcome > 0) {
                 _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(_totalRemainingBetsOnWinningOutcome);
