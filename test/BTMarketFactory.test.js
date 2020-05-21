@@ -1,40 +1,47 @@
-const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
+'use strict';
 
-const DaiMockup = artifacts.require('DaiMockup');
+//const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
+
 const aTokenMockup = artifacts.require('aTokenMockup');
 const BetTogether = artifacts.require('TestBTMarket');
 const BetTogetherFactory = artifacts.require('TestBTMarketFactory');
+const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
-
-const marketOpeningTime = 0;
-const marketResolutionTime = 0;
-const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
-const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
-const numberOfOutcomes = 2;
-const eventName = 'Who will win the 2020 US General Election';
-const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
 
 const NON_OCCURING = 0;
 const OCCURING = 1;
+
 const stake0 = 200;
 const stake1 = 300;
 const stake2 = 500;
 const stake3 = 100;
 const stake4 = 400;
-const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
-const totalWinningStake = stake3 + stake4;
-const totalInterest = totalStake * 0.1;
+
+let aToken;
+let dai;
+let betTogether;
+let betTogetherFactory;
+let realitio;
+let user0;
+let user1;
+let user2;
+let user3;
+// let user4;
+// let user5;
+// let user6;
+// let user7;
+// let user8;
 
 contract('BetTogetherTests', (accounts) => {
   user0 = accounts[0];
   user1 = accounts[1];
   user2 = accounts[2];
   user3 = accounts[3];
-  user4 = accounts[4];
-  user5 = accounts[5];
-  user6 = accounts[6];
-  user7 = accounts[7];
-  user8 = accounts[8];
+  // user4 = accounts[4];
+  // user5 = accounts[5];
+  // user6 = accounts[6];
+  // user7 = accounts[7];
+  // user8 = accounts[8];
 
   beforeEach(async () => {
     dai = await DaiMockup.new();
@@ -47,6 +54,12 @@ contract('BetTogetherTests', (accounts) => {
       aToken.address,
       realitio.address
     );
+    const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
+    const eventName = 'Who will win the 2020 US General Election';
+    const marketOpeningTime = 0;
+    const marketResolutionTime = 0;
+    const numberOfOutcomes = 2;
+    const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
     await betTogetherFactory.createMarket(
       eventName,
       marketOpeningTime,
@@ -60,45 +73,47 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
-    marketAddress = await betTogetherFactory.marketAddresses.call(0);
-    betTogether = await BetTogether.at(marketAddress);
-    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
-    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
-    await betTogether.incrementState();
+    await prepareForBetting();
 
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, NON_OCCURING, stake1);
     await placeBet(user2, NON_OCCURING, stake2);
     await placeBet(user2, OCCURING, stake3);
     await placeBet(user3, OCCURING, stake4);
+    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+    const totalWinningStake = stake3 + stake4;
 
-    await aToken.generate10PercentInterest(betTogether.address);
-    await betTogether.incrementState();
-    await realitio.setResult(OCCURING);
-    await betTogether.determineWinner();
+    await letOutcomeOccur();
 
     // check returned deposit + winnings for user2 and user3
-    let userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake3, stake2); // user/staked on winning/staked on losing
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(
+      user2,
+      stake3,
+      stake2,
+      totalStake,
+      totalWinningStake
+    ); // user/staked on winning/staked on losing
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    userResult = await withdrawAndReturnActualAndExpectedBalance(user3, stake4, 0);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user3, stake4, 0, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check returned deposit for losers user0 and user1
-    userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check totalBets and betsWithdrawn
-    totalBets = await betTogether.totalBets.call();
+    const totalBets = await betTogether.totalBets.call();
     assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
-    betsWithdrawn = await betTogether.betsWithdrawn.call();
+    const betsWithdrawn = await betTogether.betsWithdrawn.call();
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
   });
 
   it('check market states transition', async () => {
-    marketAddress = await betTogetherFactory.marketAddresses.call(0);
+    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
+    const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.SETUP);
     await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
     await betTogether.createTokenContract('Donald Trump', 'MBtrump');
@@ -112,16 +127,66 @@ contract('BetTogetherTests', (accounts) => {
     await placeBet(user0, NON_OCCURING, stake0);
     await betTogether.incrementState(); // test mode allows to switch to LOCKED instantly
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
-    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
-    await expect(betTogether.withdraw({from: user0})).to.be.reverted;
+    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted; // too late
+    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // too early
 
     await realitio.setResult(OCCURING);
     await betTogether.determineWinner();
 
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
-    betTogether.withdraw({from: user0}); // should succeed now
+    await betTogether.withdraw({from: user0}); // should succeed now
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
+    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // not a second time!
   });
+
+  it('one user betting multiple times receives all stake plus total interest', async () => {
+    const totalLosingStake = stake0 + stake1 + stake2;
+    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+    const totalWinningStake = stake3 + stake4;
+    await prepareForBetting();
+
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user0, NON_OCCURING, stake1);
+    await placeBet(user0, NON_OCCURING, stake2);
+    await placeBet(user0, OCCURING, stake3);
+    await placeBet(user0, OCCURING, stake4);
+
+    await letOutcomeOccur();
+
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(
+      user0,
+      totalWinningStake,
+      totalLosingStake,
+      totalStake,
+      totalWinningStake
+    ); // user/staked on winning/staked on losing
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+  });
+
+  it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
+    await prepareForBetting();
+
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user1, NON_OCCURING, stake1);
+    await placeBet(user2, NON_OCCURING, stake2);
+    await placeBet(user2, OCCURING, stake3);
+    await placeBet(user3, OCCURING, stake4);
+  });
+
+  async function prepareForBetting() {
+    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
+    betTogether = await BetTogether.at(marketAddress);
+    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
+    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
+    await betTogether.incrementState();
+  }
+
+  async function letOutcomeOccur() {
+    await aToken.generate10PercentInterest(betTogether.address);
+    await betTogether.incrementState();
+    await realitio.setResult(OCCURING);
+    await betTogether.determineWinner();
+  }
 
   async function placeBet(user, outcome, stake) {
     await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
@@ -129,15 +194,22 @@ contract('BetTogetherTests', (accounts) => {
     });
   }
 
-  async function withdrawAndReturnActualAndExpectedBalance(user, stakeOnWinning, stakeOnLosing) {
+  async function withdrawAndReturnActualAndExpectedBalance(
+    _user,
+    _stakeOnWinning,
+    _stakeOnLosing,
+    _totalStake,
+    _totalWinningStake
+  ) {
     await betTogether.withdraw({
-      from: user,
+      from: _user,
     });
-    let actualBalance = await dai.balanceOf(user);
-    let expectedBalance = stakeOnWinning + stakeOnLosing;
+    const actualBalance = await dai.balanceOf(_user);
+    let expectedBalance = _stakeOnWinning + _stakeOnLosing;
 
-    if (stakeOnWinning > 0) {
-      let shareOfInterest = (stakeOnWinning / totalWinningStake) * totalInterest;
+    if (_stakeOnWinning > 0) {
+      const totalInterest = _totalStake * 0.1;
+      const shareOfInterest = (_stakeOnWinning / _totalWinningStake) * totalInterest;
       expectedBalance += shareOfInterest;
     }
     return {
