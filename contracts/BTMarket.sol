@@ -316,7 +316,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         } else {
             _payoutWinningsInvalid();
         }
-        _burnUserstokenAddresses();
+        _burnUsersTokens();
     }
 
     ////////////////////////////////////
@@ -359,7 +359,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         totalBetsPerUser[msg.sender] = totalBetsPerUser[msg.sender].add(_dai);
     }
 
-    function _burnUserstokenAddresses() internal {
+    function _burnUsersTokens() internal {
         uint256 _userBetsAllOutcomes;
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             Token _token = Token(tokenAddresses[i]);
