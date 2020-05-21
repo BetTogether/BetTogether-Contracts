@@ -34,6 +34,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public marketLockingTime; // when the market is no longer open for bets
     uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
     bytes32 public questionId; // the question ID of the question on realitio
+    uint256 public marketOpeningTimestamp;
     string public eventName;
     string[] public outcomeNames;
     Token[] public tokenAddresses;
@@ -42,7 +43,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     States public state;
 
     //////// Betting variables ////////
-    mapping(uint256 => uint256[]) public betTimestamps;
+    mapping(uint256 => betStruct[]) public betsTracker;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
@@ -50,6 +51,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
+    struct betStruct {
+        uint256 daiBet;
+        uint256 timestamp;
+    }
 
     //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
@@ -91,11 +96,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         marketLockingTime = _marketTimes[1];
         marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _numberOfOutcomes;
-
-        //Initialise timestamps with contract creation time
-        for (uint256 i = 0; i < _numberOfOutcomes; i++) {
-            betTimestamps[i].push(now);
-        }
 
         // Create the question on Realitio
         uint256 _templateId = 2;
@@ -297,6 +297,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
             ((state == States.OPEN) && (marketLockingTime < now)) ||
             ((state == States.LOCKED) && (winningOutcome != 69))
         ) {
+            if (state == States.WAITING) {
+                marketOpeningTimestamp = now;
+            }
             if (state == States.LOCKED) {
                 maxInterest = getTotalInterest();
             }
@@ -340,7 +343,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
-        betTimestamps[_outcome].push(now);
+        betStruct memory _bet;
+        _bet.daiBet = _dai;
+        _bet.timestamp = now;
+        betsTracker[_outcome].push(_bet);
         Token _token = Token(tokenAddresses[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
