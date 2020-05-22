@@ -174,34 +174,33 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     /// @dev Returns total winnings for a participant based on current accumulated interest
     function _getWinnings() internal view returns (uint256) {
-        Token _token = Token(tokenAddresses[winningOutcome]);
-        uint256 _winnings;
-        uint256 _userBetOnWinningOutcome = _token.balanceOf(msg.sender);
-        if (_userBetOnWinningOutcome > 0) {
-            uint256 _totalInterest = getTotalInterest();
+        return _getWinningsGivenOutcome(winningOutcome);
+    }
 
-            uint256 _totalRemainingBetsOnWinningOutcome = totalBetsPerOutcome[winningOutcome].sub(
-                betsWithdrawnPerOutcome[winningOutcome]
-            );
-            if (_totalRemainingBetsOnWinningOutcome > 0) {
-                _winnings = (_totalInterest.mul(_userBetOnWinningOutcome)).div(_totalRemainingBetsOnWinningOutcome);
-            }
-        }
-        return _winnings;
+    function getWinningsGivenOutcome(uint256 _outcome) external view returns (uint256) {
+        return _getWinningsGivenOutcome(_outcome);
+    }
+
+    function _getWinningsGivenOutcome(uint256 _outcome) internal view returns (uint256) {
+        Token _token = Token(tokenAddresses[_outcome]);
+        uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
+        uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
+        return calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
     }
 
     /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
-        uint256 _winningsInvalid;
-        if (totalBetsPerUser[msg.sender] > 0) {
+        return calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
+    }
+
+    function calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount) internal view returns (uint256) {
+        uint256 winnings;
+        if (_totalBetAmount > 0) {
             uint256 _totalInterest = getTotalInterest();
-            uint256 _totalRemainingBets = totalBets.sub(betsWithdrawn);
-            if (_totalRemainingBets > 0) {
-                _winningsInvalid = (_totalInterest.mul(totalBetsPerUser[msg.sender])).div(_totalRemainingBets);
-            }
+            winnings = (_totalInterest.mul(_userBetOutcomeAmount)).div(_totalBetAmount);
         }
-        return _winningsInvalid;
+        return winnings;
     }
 
     // need the interest rate for this
