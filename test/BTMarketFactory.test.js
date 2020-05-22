@@ -119,9 +119,13 @@ contract('BetTogetherTests', (accounts) => {
 
     await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
+    // incrementing state again here would change it to LOCKED as 'marketLockingTime' is set to 0 in the test
 
     await placeBet(user0, NON_OCCURING, stake0);
     await betTogether.incrementState(); // test mode allows to switch to LOCKED instantly
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
+    // incrementing state again doesn't change it
+    await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted; // too late
     await expect(betTogether.withdraw({from: user0})).to.be.reverted; // too early
@@ -133,6 +137,9 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.withdraw({from: user0}); // should succeed now
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
     await expect(betTogether.withdraw({from: user0})).to.be.reverted; // not a second time!
+    // incrementing state again doesn't change it
+    await betTogether.incrementState();
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
   });
 
   it('one user betting multiple times receives all stake plus total interest', async () => {
@@ -155,7 +162,7 @@ contract('BetTogetherTests', (accounts) => {
       totalLosingStake,
       totalStake,
       totalWinningStake
-    ); // user/staked on winning/staked on losing
+    );
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
   });
 
