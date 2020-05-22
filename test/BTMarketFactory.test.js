@@ -159,17 +159,23 @@ contract('BetTogetherTests', (accounts) => {
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
   });
 
-  it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
+  it('payout all stakes plus interest in case of an invalid outcome', async () => {
+    const totalStake = stake0 + stake1;
+    const totalWinningStake = stake1;
     await prepareForBetting();
 
     await placeBet(user0, NON_OCCURING, stake0);
-    await placeBet(user1, NON_OCCURING, stake1);
-    await placeBet(user2, NON_OCCURING, stake2);
-    await placeBet(user2, OCCURING, stake3);
-    await placeBet(user3, OCCURING, stake4);
+    await placeBet(user1, OCCURING, stake1);
+
+    await letInvalidOutcomeOccur();
+
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, stake1, 0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
   });
 
-  it("check total interest and it's payout in case of no winner", async () => {
+  it('payout stake plus interest in case of no winner', async () => {
     const totalStake = stake0;
     const totalWinningStake = 0;
     const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
@@ -198,6 +204,13 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.determineWinner();
   }
 
+  async function letInvalidOutcomeOccur() {
+    await aToken.generate10PercentInterest(betTogether.address);
+    await betTogether.incrementState();
+    await realitio.setResult(OCCURING + 1);
+    await betTogether.determineWinner();
+  }
+
   async function placeBet(user, outcome, stake) {
     await dai.mint(web3.utils.toWei(stake.toString(), 'ether'), {from: user});
     await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
@@ -217,18 +230,18 @@ contract('BetTogetherTests', (accounts) => {
     });
     const actualBalance = await dai.balanceOf(_user);
     let expectedBalance = _stakeOnWinning + _stakeOnLosing;
-    //console.log('expectedBalance0: ' + expectedBalance);
+    const outcome = await betTogether.winningOutcome();
+    const invalidOutcome = outcome != OCCURING && outcome != NON_OCCURING;
 
-    if (_stakeOnWinning > 0 || _totalWinningStake == 0) {
+    if (_stakeOnWinning > 0 || _totalWinningStake == 0 || invalidOutcome) {
       const totalInterest = _totalStake * 0.1;
       let shareOfInterest;
-      if (_stakeOnWinning > 0) {
-        shareOfInterest = (_stakeOnWinning / _totalWinningStake) * totalInterest;
+      if (_totalWinningStake == 0 || invalidOutcome) {
+        shareOfInterest = (expectedBalance / _totalStake) * totalInterest;
       } else {
-        shareOfInterest = (_stakeOnLosing / _totalStake) * totalInterest;
+        shareOfInterest = (_stakeOnWinning / _totalWinningStake) * totalInterest;
       }
       expectedBalance += shareOfInterest;
-      //console.log('expectedBalance1: ' + expectedBalance);
     }
     return {
       actualBalance: actualBalance,
