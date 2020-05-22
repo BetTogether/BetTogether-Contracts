@@ -1,10 +1,10 @@
 'use strict';
 
-//const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
+const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
-const BetTogether = artifacts.require('TestBTMarket');
-const BetTogetherFactory = artifacts.require('TestBTMarketFactory');
+const BetTogether = artifacts.require('BTMarket');
+const BetTogetherFactory = artifacts.require('BTMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 
@@ -173,6 +173,22 @@ contract('BetTogetherTests', (accounts) => {
     await placeBet(user3, OCCURING, stake4);
   });
 
+  it("check total interest and it's payout in case of no winner", async () => {
+    const totalStake = stake0;
+    const totalWinningStake = 0;
+    const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0);
+    await letOutcomeOccur();
+    let totalInterest = await betTogether.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    totalInterest = await betTogether.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
+
   async function prepareForBetting() {
     const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
@@ -189,6 +205,7 @@ contract('BetTogetherTests', (accounts) => {
   }
 
   async function placeBet(user, outcome, stake) {
+    await dai.mint(web3.utils.toWei(stake.toString(), 'ether'), {from: user});
     await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });
@@ -206,11 +223,18 @@ contract('BetTogetherTests', (accounts) => {
     });
     const actualBalance = await dai.balanceOf(_user);
     let expectedBalance = _stakeOnWinning + _stakeOnLosing;
+    //console.log('expectedBalance0: ' + expectedBalance);
 
-    if (_stakeOnWinning > 0) {
+    if (_stakeOnWinning > 0 || _totalWinningStake == 0) {
       const totalInterest = _totalStake * 0.1;
-      const shareOfInterest = (_stakeOnWinning / _totalWinningStake) * totalInterest;
+      let shareOfInterest;
+      if (_stakeOnWinning > 0) {
+        shareOfInterest = (_stakeOnWinning / _totalWinningStake) * totalInterest;
+      } else {
+        shareOfInterest = (_stakeOnLosing / _totalStake) * totalInterest;
+      }
       expectedBalance += shareOfInterest;
+      //console.log('expectedBalance1: ' + expectedBalance);
     }
     return {
       actualBalance: actualBalance,
