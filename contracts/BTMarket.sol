@@ -43,7 +43,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     States public state;
 
     //////// Betting variables ////////
-    mapping(uint256 => betStruct[]) public betsTracker;
+    mapping(uint256 => uint256[]) private betAmountsArray;
+    mapping(uint256 => uint256[]) private timestampsArray;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
@@ -51,10 +52,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
-    struct betStruct {
-        uint256 daiBet;
-        uint256 timestamp;
-    }
 
     //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
@@ -148,6 +145,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     ////////// VIEW FUNCTIONS //////////
     ////////////////////////////////////
+    function getBetAmountsArray(uint256 _outcome) external view returns (uint256[] memory) {
+        return betAmountsArray[_outcome];
+    }
+
+    function getTimestampsArray(uint256 _outcome) external view returns (uint256[] memory) {
+        return timestampsArray[_outcome];
+    }
+
     function getMarketSize() public view returns (uint256) {
         return participants.length;
     }
@@ -345,10 +350,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
-        betStruct memory _bet;
-        _bet.daiBet = _dai;
-        _bet.timestamp = now;
-        betsTracker[_outcome].push(_bet);
+        betAmountsArray[_outcome].push(_dai);
+        timestampsArray[_outcome].push(now);
         Token _token = Token(tokenAddresses[_outcome]);
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
