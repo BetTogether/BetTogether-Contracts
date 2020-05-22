@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.8;
+pragma experimental ABIEncoderV2;
 
 import '@nomiclabs/buidler/console.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
@@ -68,11 +69,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         IAaveLendingPoolCore _aaveLpcoreAddress,
         IRealitio _realitioAddress,
         string memory _eventName,
-        uint256[3] memory _marketTimes,
-        uint32 _timeout, // how long realitio waits for a dispute before confirming an answer
+        uint256[4] memory _marketTimes,
         address _arbitrator,
         string memory _realitioQuestion,
-        uint256 _numberOfOutcomes,
+        string[] memory _outcomeNamesArray,
         address _owner
     ) public {
         if (_owner != msg.sender) {
@@ -92,12 +92,24 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
         marketResolutionTime = uint32(_marketTimes[2]);
-        numberOfOutcomes = _numberOfOutcomes;
+        numberOfOutcomes = _outcomeNamesArray.length;
+
+        //create the tokens
+        for (uint256 i = 0; i < numberOfOutcomes; i++) {
+            createTokenContract(_outcomeNamesArray[i]);
+        }
 
         // Create the question on Realitio
         uint256 _templateId = 2;
         uint256 _nonce = now; // <- should probably change this to zero for mainnet
-        questionId = _postQuestion(_templateId, _realitioQuestion, _arbitrator, _timeout, marketResolutionTime, _nonce);
+        questionId = _postQuestion(
+            _templateId,
+            _realitioQuestion,
+            _arbitrator,
+            uint32(_marketTimes[3]),
+            marketResolutionTime,
+            _nonce
+        );
     }
 
     ////////////////////////////////////
@@ -120,13 +132,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
     }
 
-    function createTokenContract(string calldata _outcomeName, string calldata _tokenName)
-        external
-        onlyOwner
-        checkState(States.SETUP)
-    {
+    function createTokenContract(string memory _outcomeName) internal onlyOwner checkState(States.SETUP) {
         outcomeNames.push(_outcomeName);
-        Token tokenContract = new Token({_tokenName: _tokenName});
+        Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
         tokenContractsCreated = tokenContractsCreated.add(1);
         if (tokenContractsCreated == numberOfOutcomes) {

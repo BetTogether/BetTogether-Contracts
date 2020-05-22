@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.6.8;
+pragma experimental ABIEncoderV2;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
@@ -47,7 +48,7 @@ contract BTMarketFactory is Ownable, Pausable {
         uint32 _timeout,
         address _arbitrator,
         string memory _realitioQuestion,
-        uint256 _numberOfOutcomes
+        string[] memory _outcomeNamesArray
     )
         public
         virtual
@@ -55,7 +56,7 @@ contract BTMarketFactory is Ownable, Pausable {
         whenNotPaused
         returns (BTMarket)
     {
-        uint256[3] memory marketTimes = [_marketOpeningTime, _marketLockingTime, _marketResolutionTime];
+        uint256[4] memory marketTimes = [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout];
         BTMarket newContract = new BTMarket({
             _daiAddress: dai,
             _aTokenAddress: aToken,
@@ -64,10 +65,9 @@ contract BTMarketFactory is Ownable, Pausable {
             _realitioAddress: realitio,
             _eventName: _eventName,
             _marketTimes: marketTimes,
-            _timeout: _timeout,
             _arbitrator: _arbitrator,
             _realitioQuestion: _realitioQuestion,
-            _numberOfOutcomes: _numberOfOutcomes,
+            _outcomeNamesArray: _outcomeNamesArray,
             _owner: msg.sender
         });
         address newAddress = address(newContract);
