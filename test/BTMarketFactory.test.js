@@ -58,8 +58,8 @@ contract('BetTogetherTests', (accounts) => {
     const eventName = 'Who will win the 2020 US General Election';
     const marketOpeningTime = 0;
     const marketResolutionTime = 0;
-    const numberOfOutcomes = 2;
     const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
+    const outcomeNamesArray = ['Trump', 'Biden'];
     await betTogetherFactory.createMarket(
       eventName,
       marketOpeningTime,
@@ -68,7 +68,7 @@ contract('BetTogetherTests', (accounts) => {
       30,
       arbitrator,
       question,
-      numberOfOutcomes
+      outcomeNamesArray
     );
   });
 
@@ -114,10 +114,6 @@ contract('BetTogetherTests', (accounts) => {
     const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.SETUP);
-    await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
-    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
-    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WAITING);
     await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
 
@@ -192,8 +188,6 @@ contract('BetTogetherTests', (accounts) => {
   async function prepareForBetting() {
     const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
-    await betTogether.createTokenContract('Donald Trump', 'MBtrump');
-    await betTogether.createTokenContract('Joe Biden', 'MBbiden');
     await betTogether.incrementState();
   }
 

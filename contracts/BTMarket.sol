@@ -132,7 +132,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
     }
 
-    function createTokenContract(string memory _outcomeName) internal onlyOwner checkState(States.SETUP) {
+    function createTokenContract(string memory _outcomeName) internal checkState(States.SETUP) {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
@@ -185,11 +185,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return _totalInterest;
     }
 
-    /// @dev Returns total winnings for a participant based on current accumulated interest
-    function _getWinnings() internal view returns (uint256) {
-        return _getWinningsGivenOutcome(winningOutcome);
-    }
-
     function getWinningsGivenOutcome(uint256 _outcome) external view returns (uint256) {
         return _getWinningsGivenOutcome(_outcome);
     }
@@ -198,16 +193,20 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         Token _token = Token(tokenAddresses[_outcome]);
         uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
         uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
-        return calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
+        return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
     }
 
     /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
-        return calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
+        return _calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
     }
 
-    function calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount) internal view returns (uint256) {
+    function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 winnings;
         if (_totalBetAmount > 0) {
             uint256 _totalInterest = getTotalInterest();
@@ -338,7 +337,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// INTERNAL FUNCTIONS ////////
     ////////////////////////////////////
     function _payoutWinnings() internal {
-        uint256 _winnings = _getWinnings();
+        uint256 _winnings = _getWinningsGivenOutcome(winningOutcome);
         uint256 _daiToSend = _winnings.add(totalBetsPerUser[msg.sender]);
         // externals
         if (_daiToSend > 0) {
