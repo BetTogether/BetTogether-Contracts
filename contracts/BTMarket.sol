@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.8;
+pragma solidity 0.6.7;
 pragma experimental ABIEncoderV2;
 
 import '@nomiclabs/buidler/console.sol';
@@ -25,9 +25,6 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
     IRealitio public realitio;
-
-    //////// Setup ////////
-    uint256 public tokenContractsCreated;
 
     //////// Market Details ////////
     uint256 public maxInterest; //for the front end
@@ -96,7 +93,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
         //create the tokens
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
-            createTokenContract(_outcomeNamesArray[i]);
+            _createTokenContract(_outcomeNamesArray[i]);
         }
 
         // Create the question on Realitio
@@ -132,12 +129,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
     }
 
-    function createTokenContract(string memory _outcomeName) internal checkState(States.SETUP) {
+    function _createTokenContract(string memory _outcomeName) internal checkState(States.SETUP) {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
-        tokenContractsCreated = tokenContractsCreated.add(1);
-        if (tokenContractsCreated == numberOfOutcomes) {
+        if (tokenAddresses.length == numberOfOutcomes) {
             state = States(uint256(state) + 1);
         }
     }

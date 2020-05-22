@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.8;
+pragma solidity 0.6.7;
 pragma experimental ABIEncoderV2;
 
 import '@openzeppelin/contracts/access/Ownable.sol';

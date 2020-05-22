@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.8;
+pragma solidity 0.6.7;
 
 import '@nomiclabs/buidler/console.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';

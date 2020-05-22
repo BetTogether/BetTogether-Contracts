@@ -9,7 +9,7 @@ const MNEMONIC = process.env.MNEMONIC;
 // Go to https://buidler.dev/config/ to learn more
 module.exports = {
   solc: {
-    version: '0.6.8',
+    version: '0.6.7',
     optimizer: {
       enabled: true,
       runs: 200,
