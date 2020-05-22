@@ -278,7 +278,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     function determineWinner() external whenNotPaused {
         require(_isQuestionFinalized(), 'Oracle has not finalised');
         winningOutcome = _determineWinner();
-        if (winningOutcome != ((2**256) - 1)) {
+        if (winningOutcome != ((2**256) - 1) && totalBetsPerOutcome[winningOutcome] > 0) {
             questionResolvedInvalid = false;
         }
         incrementState();
