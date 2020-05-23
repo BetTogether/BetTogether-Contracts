@@ -276,7 +276,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
 
-    function placeBet(uint256 _outcome, uint256 _dai) external virtual checkState(States.OPEN) whenNotPaused {
+    function placeBet(uint256 _outcome, uint256 _dai) external checkState(States.OPEN) whenNotPaused {
         _placeBet(_outcome, _dai);
         _receiveCash(msg.sender, _dai);
         _sendToAave(_dai);
