@@ -10,6 +10,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
+import './interfaces/IUniswapV2Router01.sol';
 import './Token.sol';
 
 
@@ -25,6 +26,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
     IRealitio public realitio;
+    IUniswapV2Router01 public uniswapRouter;
 
     //////// Market Details ////////
     uint256 public maxInterest; //for the front end
@@ -61,10 +63,9 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     constructor(
         Dai _daiAddress,
-        IaToken _aTokenAddress,
-        IAaveLendingPool _aaveLpAddress,
-        IAaveLendingPoolCore _aaveLpcoreAddress,
+        address[3] memory _aaveAddresses,
         IRealitio _realitioAddress,
+        IUniswapV2Router01 _uniswapRouter,
         string memory _eventName,
         uint256[4] memory _marketTimes,
         address _arbitrator,
@@ -77,12 +78,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         }
         // Externals
         dai = _daiAddress;
-        aToken = _aTokenAddress;
-        aaveLendingPool = _aaveLpAddress;
+        aToken = IaToken(_aaveAddresses[0]);
+        aaveLendingPool = IAaveLendingPool(_aaveAddresses[1]);
         realitio = _realitioAddress;
+        uniswapRouter = _uniswapRouter;
 
         // Approvals
-        dai.approve(address(_aaveLpcoreAddress), 2**255);
+        dai.approve(_aaveAddresses[2], 2**255);
 
         // Pass arguments to public variables
         eventName = _eventName;
@@ -255,6 +257,11 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice common function for all incoming DAI transfers
     function _receiveCash(address _from, uint256 _amount) internal {
+        if (msg.value > 0) {
+            swapETHForExactTokenWithUniswap(_amount);
+            return;
+        }
+
         require(dai.transferFrom(_from, address(this), _amount), 'Cash transfer failed');
     }
 
@@ -276,7 +283,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
 
-    function placeBet(uint256 _outcome, uint256 _dai) external checkState(States.OPEN) whenNotPaused {
+    function placeBet(uint256 _outcome, uint256 _dai) external payable checkState(States.OPEN) whenNotPaused {
         _placeBet(_outcome, _dai);
         _receiveCash(msg.sender, _dai);
         _sendToAave(_dai);
@@ -380,6 +387,33 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         }
         assert(_userBetsAllOutcomes == totalBetsPerUser[msg.sender]);
         betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
+    }
+
+    function swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
+        address[] memory path = getDAIforETHpath();
+
+        uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
+        msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
+    }
+
+    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
+        address[] memory path = getDAIforETHpath();
+
+        return uniswapRouter.getAmountsIn(ethAmount, path);
+    }
+
+    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
+        address[] memory path = getDAIforETHpath();
+
+        return uniswapRouter.getAmountsOut(daiAmount, path);
+    }
+
+    function getDAIforETHpath() private view returns (address[] memory) {
+        address[] memory path = new address[](2);
+        path[0] = uniswapRouter.WETH();
+        path[1] = address(dai);
+
+        return path;
     }
 
     ////////////////////////////////////

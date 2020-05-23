@@ -8,6 +8,7 @@ import './BTMarket.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
+import './interfaces/IUniswapV2Router01.sol';
 
 
 contract BTMarketFactory is Ownable, Pausable {
@@ -16,6 +17,8 @@ contract BTMarketFactory is Ownable, Pausable {
     IAaveLendingPool public aaveLendingPool;
     IAaveLendingPoolCore public aaveLendingPoolCore;
     IRealitio public realitio;
+    IUniswapV2Router01 public uniswapRouter;
+
     mapping(address => bool) public mappingOfMarkets;
     address[] public marketAddresses;
 
@@ -31,13 +34,15 @@ contract BTMarketFactory is Ownable, Pausable {
         IaToken _aTokenAddress,
         IAaveLendingPool _aaveLpAddress,
         IAaveLendingPoolCore _aaveLpcoreAddress,
-        IRealitio _realitioAddress
+        IRealitio _realitioAddress,
+        IUniswapV2Router01 _uniswapRouter
     ) public {
         dai = _daiAddress;
         aToken = _aTokenAddress;
         aaveLendingPool = _aaveLpAddress;
         aaveLendingPoolCore = _aaveLpcoreAddress;
         realitio = _realitioAddress;
+        uniswapRouter = _uniswapRouter;
     }
 
     function createMarket(
@@ -59,10 +64,9 @@ contract BTMarketFactory is Ownable, Pausable {
         uint256[4] memory marketTimes = [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout];
         BTMarket newContract = new BTMarket({
             _daiAddress: dai,
-            _aTokenAddress: aToken,
-            _aaveLpAddress: aaveLendingPool,
-            _aaveLpcoreAddress: aaveLendingPoolCore,
+            _aaveAddresses: [address(aToken), address(aaveLendingPool), address(aaveLendingPoolCore)],
             _realitioAddress: realitio,
+            _uniswapRouter: uniswapRouter,
             _eventName: _eventName,
             _marketTimes: marketTimes,
             _arbitrator: _arbitrator,
