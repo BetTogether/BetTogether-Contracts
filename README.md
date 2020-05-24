@@ -10,6 +10,8 @@ MagicBet is a no loss betting platform, built on the Ethereum ecosystem. It allo
 
 All stakes accrue interest until the event which is bet on happens. The interest payment is then shared among the winners, and all participants (winners and losers) get their stakes back - thus allowing users to save money in a fun manner.
 
+Users are minted ERC20 tokens according to each outcome, which must be burnt to receive their Dai back. 
+
 This project contains the Ethereum smart contracts, the client code can be found under the following link.
 
 [Corresponding Client](https://github.com/BetTogether/BetTogether-Client)
@@ -44,6 +46,8 @@ truffle migrate --reset --network kovan
 This will deploy the BTMarketFactory contract. Copy the contents of the folder `abis/` over to the Client repo into `src/abis/`. In addition, take a note of the address of the deployed BTMarketFactory.sol, and update the relevant variable in src/utils/addresses.ts (line 6 for kovan), also in the Client repo. Then follow the ReadMe of that repo to run the app locally.
 
 ## Behind the scenes
+
+Magic Bet uses a factory contract, which itself deploys the markets, and any corresponding ERC20s. The above will deploy the factory contract only, the market contracts are deployed by the front end. 
 
 All Dai that is sent to the contract is sent to Aave, whereby it begins to accrue interest. Interest and principal is withdrawn from Aave when users withdraw- the contract never holds funds for more than a single block. 
 
