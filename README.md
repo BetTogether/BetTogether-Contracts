@@ -1,4 +1,4 @@
-# MagicBet Contracts
+# MagicBet - Contracts
 
 _Lossless Ethereum Betting_
 
@@ -6,18 +6,17 @@ _Lossless Ethereum Betting_
 [![#built-with openzeppelin](https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF?style=flat-square)](https://docs.openzeppelin.com/)
 ![#solc 0.6.7](https://img.shields.io/badge/solc-0.6.7-brown?style=flat-square)
 
-MagicBet is a no loss betting platform built on Ethereum. All stakes accrue interest until the event happens. The interest payment is then shared among the winners, and all participants get their stakes back.
+MagicBet is a no loss betting platform, built on the Ethereum ecosystem. It allows users to bet on real life future events and outcomes without risking to lose their stake.
+
+All stakes accrue interest until the event which is bet on happens. The interest payment is then shared among the winners, and all participants (winners and losers) get their stakes back - thus allowing users to save money in a fun manner.
+
 This project contains the Ethereum smart contracts, the client code can be found under the following link.
 
 [Corresponding Client](https://github.com/BetTogether/BetTogether-Client)
 
 ## Setup
 
-Clone the repo and then install dependencies:
-
-```
-$ npm install
-```
+Given that [NodeJS](https://nodejs.org/) and [npm](https://www.npmjs.com/) are installed, clone the repo and then run `npm install` inside the root directory to install the dependencies.
 
 For the environment variables you need to create a `.env` file in the root directory which contains the keys MNEMONIC and INFURA_KEY with your personal data like this:
 
@@ -42,4 +41,4 @@ To deploy to the Kovan test net, run
 truffle migrate --reset --network kovan
 ```
 
-This will deploy the BTMarketFactory contract. You then have to copy the file `abis/BTMarketFactory.json` over to the Client repo into the `src/abis` directory, and then follow the ReadMe of that repo to run the app locally.
+This will deploy the BTMarketFactory contract. You then have to copy the content of the folder `abis/` over to the Client repo into `src/abis/`, and then follow the ReadMe of that repo to run the app locally.
