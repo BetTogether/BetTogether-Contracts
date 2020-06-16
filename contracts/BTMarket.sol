@@ -144,6 +144,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States currentState) {
+        if (state != currentState) {
+            incrementState();
+        }
+
         require(state == currentState, 'function cannot be called at this time');
         _;
     }
