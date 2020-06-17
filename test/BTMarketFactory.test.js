@@ -7,6 +7,7 @@ const BetTogether = artifacts.require('BTMarket');
 const BetTogetherFactory = artifacts.require('BTMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
+const UniswapMockup = artifacts.require('UniswapMockup.sol');
 
 const NON_OCCURING = 0;
 const OCCURING = 1;
@@ -21,6 +22,7 @@ let aToken;
 let dai;
 let betTogether;
 let betTogetherFactory;
+let uniswap;
 let realitio;
 let user0;
 let user1;
@@ -47,11 +49,13 @@ contract('BetTogetherTests', (accounts) => {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
+    uniswap = await UniswapMockup.new();
     betTogetherFactory = await BetTogetherFactory.new(
       dai.address,
       aToken.address,
       aToken.address,
       aToken.address,
+      uniswap.address,
       realitio.address
     );
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
