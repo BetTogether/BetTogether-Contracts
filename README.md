@@ -20,7 +20,7 @@
 
 <br/>
 
-MagicBet is a no loss betting platform, built on the Ethereum ecosystem. It allows users to bet on real life future events and outcomes without risking their stake.
+MagicBet is a no loss betting platform, built on Ethereum. It allows users to make bets on future events and outcomes without the need to risk their initial stake.
 
 All stakes accrue interest until the event which is bet on happens. The interest payment is then shared among the winners, and all participants (winners and losers) get their stakes back - thus allowing users to save money in a fun manner.
 
@@ -36,7 +36,7 @@ Given that [NodeJS](https://nodejs.org/) and [npm](https://www.npmjs.com/) are i
 
 For the environment variables you need to create a `.env` file in the root directory which contains the keys `MNEMONIC` and `INFURA_KEY` with your personal data like this:
 
-```
+```env
 INFURA_KEY=your_key_4_infura
 MNEMONIC=the mnemonic phrase for your wallet
 ```
@@ -45,19 +45,19 @@ MNEMONIC=the mnemonic phrase for your wallet
 
 To run the unit tests, enter:
 
-```
-$ npx buidler test
+```bash
+npx buidler test
 ```
 
 ## Deploy
 
 To deploy to the Kovan test net, run
 
-```
+```bash
 truffle migrate --reset --network kovan
 ```
 
-This will deploy the BTMarketFactory contract. Copy the contents of the folder `abis/` over to the Client repo into `src/abis/`. In addition, take a note of the address of the deployed BTMarketFactory.sol, and update the relevant variable in `src/utils/addresses.ts` (line 6 for kovan), also in the Client repo. Then follow the ReadMe of that repo to run the app locally.
+This will deploy the MBMarketFactory contract. Copy the contents of the folder `abis/` over to the Client repo into `src/abis/`. In addition, take a note of the address of the deployed MBMarketFactory.sol, and update the relevant variable in `src/utils/addresses.ts` (line 6 for kovan), also in the Client repo. Then follow the ReadMe of that repo to run the app locally.
 
 ## Behind the scenes
 
@@ -67,4 +67,4 @@ All Dai that is sent to the contract is sent to [Aave](https://aave.com/), where
 
 The contract has full [Uniswap V2](https://uniswap.org/) integration, allowing users to pay in Eth instead of Dai, should they wish.
 
-The contract uses [realitio](https://realit.io/) as an Oracle. For continued disputes, the decentralised court [Kleros](https://kleros.io) has been set as an arbitrator. The Magic Bet team have zero ability to set the outcome. For details on how the oracle works, see https://bit.ly/2zj5lhM.
+The contract uses [realitio](https://realit.io/) as an Oracle. For continued disputes, the decentralised court [Kleros](https://kleros.io) has been set as an arbitrator. The Magic Bet team have zero ability to set the outcome. For details on how the oracle works, check out this [Medium article](https://bit.ly/2zj5lhM)

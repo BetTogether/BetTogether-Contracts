@@ -1,17 +1,18 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.7;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
-import './BTMarket.sol';
+import './MBMarket.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 
-
-contract BTMarketFactory is Ownable, Pausable {
+/// @title The MagicBet factory
+/// @notice This contract allows for generating new market instances
+contract MBMarketFactory is Ownable, Pausable {
     Dai public dai;
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
@@ -45,6 +46,16 @@ contract BTMarketFactory is Ownable, Pausable {
         uniswapRouter = _uniswapRouter;
     }
 
+    /// @notice This contract is the framework of each new market
+    /// @dev Currently, only owners can generate the markets
+    /// @param _eventName The event name
+    /// @param _marketOpeningTime When the market opens
+    /// @param _marketLockingTime When the market locks
+    /// @param _marketResolutionTime When the market is set to resolve
+    /// @param _timeout The timeout period
+    /// @param _arbitrator The arbitrator address
+    /// @param _realitioQuestion The question, formatted to suit how realitio required
+    /// @param _outcomeNamesArray The outcomes of this event
     function createMarket(
         string memory _eventName,
         uint256 _marketOpeningTime,
@@ -54,15 +65,9 @@ contract BTMarketFactory is Ownable, Pausable {
         address _arbitrator,
         string memory _realitioQuestion,
         string[] memory _outcomeNamesArray
-    )
-        public
-        virtual
-        /* onlyOwner TODO removed for development */
-        whenNotPaused
-        returns (BTMarket)
-    {
+    ) public virtual onlyOwner whenNotPaused returns (MBMarket) {
         uint256[4] memory marketTimes = [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout];
-        BTMarket newContract = new BTMarket({
+        MBMarket newContract = new MBMarket({
             _daiAddress: dai,
             _aaveAddresses: [address(aToken), address(aaveLendingPool), address(aaveLendingPoolCore)],
             _realitioAddress: realitio,
@@ -95,6 +100,6 @@ contract BTMarketFactory is Ownable, Pausable {
         createdByThisFactory(marketAddress)
         returns (bool)
     {
-        return BTMarket(marketAddress).disableContract();
+        return MBMarket(marketAddress).disableContract();
     }
 }

@@ -3,8 +3,8 @@
 const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
-const BetTogether = artifacts.require('BTMarket');
-const BetTogetherFactory = artifacts.require('BTMarketFactory');
+const BetTogether = artifacts.require('MBMarket');
+const BetTogetherFactory = artifacts.require('MBMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 const UniswapMockup = artifacts.require('UniswapMockup.sol');
