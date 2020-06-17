@@ -135,6 +135,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
+
         if (tokenAddresses.length == numberOfOutcomes) {
             state = States(uint256(state) + 1);
         }
@@ -205,13 +206,13 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
+        address[] memory path = _getDAIforETHpath();
 
         return uniswapRouter.getAmountsIn(ethAmount, path);
     }
 
     function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
+        address[] memory path = _getDAIforETHpath();
 
         return uniswapRouter.getAmountsOut(daiAmount, path);
     }
@@ -406,7 +407,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
-        address[] memory path = getDAIforETHpath();
+        address[] memory path = _getDAIforETHpath();
 
         uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
         msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
