@@ -13,6 +13,7 @@ import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 import './Token.sol';
 
+
 /// @title The MagicBet market instance
 /// @notice This contract is the framework of each new market
 contract MBMarket is Ownable, Pausable, ReentrancyGuard {
@@ -88,6 +89,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         dai.approve(_aaveAddresses[2], 2**255);
 
         // Pass arguments to public variables
+
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
@@ -136,6 +138,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
+
         if (tokenAddresses.length == numberOfOutcomes) {
             state = States(uint256(state) + 1);
         }
@@ -145,6 +148,10 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States currentState) {
+        if (state != currentState) {
+            incrementState();
+        }
+
         require(state == currentState, 'function cannot be called at this time');
         _;
     }
@@ -201,10 +208,22 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         return _calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
     }
 
-    /// @notice
-    /// @param _totalBetAmount
-    /// @param _userBetOutcomeAmount
-    /// @return
+    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
+        address[] memory path = _getDAIforETHpath();
+
+        return uniswapRouter.getAmountsIn(ethAmount, path);
+    }
+
+    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
+        address[] memory path = _getDAIforETHpath();
+
+        return uniswapRouter.getAmountsOut(daiAmount, path);
+    }
+
+    /// @notice returns winning user's share of interest
+    /// @param _totalBetAmount total bet among all outcomes
+    /// @param _userBetOutcomeAmount total bet on winning outcome
+    /// @return users's share of the interest
     function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
         internal
         view
@@ -228,13 +247,13 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
 
     /// @notice posts the market question onto realit.io
-    /// @param template_id
-    /// @param question
-    /// @param arbitrator
-    /// @param timeout
-    /// @param opening_ts
-    /// @param nonce
-    /// @return
+    /// @param template_id always 2
+    /// @param question string passed to realitio
+    /// @param arbitrator = kleros
+    /// @param timeout how long answer can be challenged until finalised
+    /// @param opening_ts when the question can first be answered
+    /// @param nonce nonce
+    /// @return the ID of the question on realitio
     function _postQuestion(
         uint256 template_id,
         string memory question,
@@ -276,7 +295,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     /// @param _amount amount to recieve
     function _receiveCash(address _from, uint256 _amount) internal {
         if (msg.value > 0) {
-            swapETHForExactTokenWithUniswap(_amount);
+            _swapETHForExactTokenWithUniswap(_amount);
             return;
         }
 
@@ -407,26 +426,14 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
     }
 
-    function swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
-        address[] memory path = getDAIforETHpath();
+    function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
+        address[] memory path = _getDAIforETHpath();
 
         uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
         msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
     }
 
-    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
-
-        return uniswapRouter.getAmountsIn(ethAmount, path);
-    }
-
-    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
-
-        return uniswapRouter.getAmountsOut(daiAmount, path);
-    }
-
-    function getDAIforETHpath() private view returns (address[] memory) {
+    function _getDAIforETHpath() private view returns (address[] memory) {
         address[] memory path = new address[](2);
         path[0] = uniswapRouter.WETH();
         path[1] = address(dai);
