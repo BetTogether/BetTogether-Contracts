@@ -55,8 +55,8 @@ contract('BetTogetherTests', (accounts) => {
       aToken.address,
       aToken.address,
       aToken.address,
-      uniswap.address,
-      realitio.address
+      realitio.address,
+      uniswap.address
     );
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
     const eventName = 'Who will win the 2020 US General Election';

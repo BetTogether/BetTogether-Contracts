@@ -87,6 +87,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         dai.approve(_aaveAddresses[2], 2**255);
 
         // Pass arguments to public variables
+
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
