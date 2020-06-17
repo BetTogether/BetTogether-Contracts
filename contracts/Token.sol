@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.7;
+pragma solidity ^0.6.0;
 
 import '@nomiclabs/buidler/console.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-
 
 contract Token is ERC20, Ownable {
     using SafeMath for uint256;

@@ -1,5 +1,5 @@
-const BTMarket = artifacts.require('BTMarket.sol');
-const BTMarketFactory = artifacts.require('BTMarketFactory.sol');
+const MBMarket = artifacts.require('MBMarket.sol');
+const MBMarketFactory = artifacts.require('MBMarketFactory.sol');
 const DaiMockup = artifacts.require('DaiMockup');
 const aTokenMockup = artifacts.require('aTokenMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
@@ -22,14 +22,14 @@ const owner = '0xCb4BF048F1Aaf4E0C05b0c77546fE820F299d4Fe';
 const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
 const eventName = 'Who will win the 2020 US General Election';
 
-// Currently deploying BTMarket directly. Ultimately it will deploy BTMarketFactory
+// Currently deploying MBMarket directly. Ultimately it will deploy MBMarketFactory
 module.exports = function (deployer, network) {
   if (network === 'develop') {
     deployer.deploy(DaiMockup).then((deployedDai) => {
       return deployer.deploy(aTokenMockup, deployedDai.address).then((deployedaToken) => {
         return deployer.deploy(RealitioMockup).then((deployedRealitio) => {
           return deployer.deploy(
-            BTMarket,
+            MBMarket,
             deployedDai.address,
             deployedaToken.address,
             deployedaToken.address,
@@ -49,7 +49,7 @@ module.exports = function (deployer, network) {
   } else if (network === 'kovan') {
     // factory deploy
     deployer.deploy(
-      BTMarketFactory,
+      MBMarketFactory,
       daiAddressKovan,
       aaveAtokenAddressKovan,
       aaveLendingPoolAddressKovan,
@@ -59,7 +59,7 @@ module.exports = function (deployer, network) {
     );
     // market deploy
     // deployer.deploy(
-    //   BTMarket,
+    //   MBMarket,
     //   daiAddressKovan,
     //   aaveAtokenAddressKovan,
     //   aaveLendingPoolAddressKovan,

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.7;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import '@nomiclabs/buidler/console.sol';
@@ -13,8 +13,9 @@ import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 import './Token.sol';
 
-
-contract BTMarket is Ownable, Pausable, ReentrancyGuard {
+/// @title The MagicBet market instance
+/// @notice This contract is the framework of each new market
+contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
 
     ////////////////////////////////////
@@ -42,7 +43,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
 
-    //////// Betting variables ////////
+    /// Betting variables
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
@@ -194,12 +195,16 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
     }
 
-    /// @dev if invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
+    /// @dev If invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
         return _calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
     }
 
+    /// @notice
+    /// @param _totalBetAmount
+    /// @param _userBetOutcomeAmount
+    /// @return
     function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
         internal
         view
@@ -222,7 +227,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// REALIITO FUNCTIONS ////////
     ////////////////////////////////////
 
-    /// @notice posts the question to realit.io
+    /// @notice posts the market question onto realit.io
+    /// @param template_id
+    /// @param question
+    /// @param arbitrator
+    /// @param timeout
+    /// @param opening_ts
+    /// @param nonce
+    /// @return
     function _postQuestion(
         uint256 template_id,
         string memory question,
@@ -234,14 +246,16 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         return realitio.askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
 
-    /// @notice gets the winning outcome from realitio
+    /// @notice determines the winning outcome from realitio
     /// @dev this function call will revert if it has not yet resolved
+    /// @return the winning outcome of the event
     function _determineWinner() internal view returns (uint256) {
         bytes32 _winningOutcome = realitio.resultFor(questionId);
         return uint256(_winningOutcome);
     }
 
-    /// @notice has the question been finalized on realitio?
+    /// @notice Function called by determineWinner to see if question has been finalized
+    /// @return whether or not the question has been finalized on realitio
     function _isQuestionFinalized() internal view returns (bool) {
         return realitio.isFinalized(questionId);
     }
@@ -251,11 +265,15 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
 
     /// @notice common function for all outgoing DAI transfers
+    /// @param _to address to send to
+    /// @param _amount amount to send
     function _sendCash(address _to, uint256 _amount) internal {
         require(dai.transfer(_to, _amount), 'Cash transfer failed');
     }
 
     /// @notice common function for all incoming DAI transfers
+    /// @param _from address that is receiving cash
+    /// @param _amount amount to recieve
     function _receiveCash(address _from, uint256 _amount) internal {
         if (msg.value > 0) {
             swapETHForExactTokenWithUniswap(_amount);
@@ -298,8 +316,8 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         incrementState();
     }
 
-    // keep this public as it's called by determineWinner
-    // not onlyOwner, can be called by anyone, this is fine
+    /// @dev keep this public as it's called by determineWinner
+    /// @dev not onlyOwner, can be called by anyone, this is fine
     function incrementState() public whenNotPaused {
         if (
             ((state == States.WAITING) && (marketOpeningTime < now)) ||
