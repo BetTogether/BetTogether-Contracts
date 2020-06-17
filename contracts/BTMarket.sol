@@ -87,6 +87,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         dai.approve(_aaveAddresses[2], 2**255);
 
         // Pass arguments to public variables
+
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
@@ -135,6 +136,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
+
         if (tokenAddresses.length == numberOfOutcomes) {
             state = States(uint256(state) + 1);
         }
@@ -144,6 +146,10 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States currentState) {
+        if (state != currentState) {
+            incrementState();
+        }
+
         require(state == currentState, 'function cannot be called at this time');
         _;
     }
@@ -198,6 +204,18 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @dev i.e. as if all the outcomes 'won'
     function getWinningsInvalid() public view returns (uint256) {
         return _calculateWinnings(totalBets.sub(betsWithdrawn), totalBetsPerUser[msg.sender]);
+    }
+
+    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
+        address[] memory path = _getDAIforETHpath();
+
+        return uniswapRouter.getAmountsIn(ethAmount, path);
+    }
+
+    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
+        address[] memory path = _getDAIforETHpath();
+
+        return uniswapRouter.getAmountsOut(daiAmount, path);
     }
 
     function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
@@ -258,7 +276,7 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
     /// @notice common function for all incoming DAI transfers
     function _receiveCash(address _from, uint256 _amount) internal {
         if (msg.value > 0) {
-            swapETHForExactTokenWithUniswap(_amount);
+            _swapETHForExactTokenWithUniswap(_amount);
             return;
         }
 
@@ -389,26 +407,14 @@ contract BTMarket is Ownable, Pausable, ReentrancyGuard {
         betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
     }
 
-    function swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
-        address[] memory path = getDAIforETHpath();
+    function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
+        address[] memory path = _getDAIforETHpath();
 
         uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
         msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
     }
 
-    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
-
-        return uniswapRouter.getAmountsIn(ethAmount, path);
-    }
-
-    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
-        address[] memory path = getDAIforETHpath();
-
-        return uniswapRouter.getAmountsOut(daiAmount, path);
-    }
-
-    function getDAIforETHpath() private view returns (address[] memory) {
+    function _getDAIforETHpath() private view returns (address[] memory) {
         address[] memory path = new address[](2);
         path[0] = uniswapRouter.WETH();
         path[1] = address(dai);

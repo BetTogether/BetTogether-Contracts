@@ -7,6 +7,7 @@ const BetTogether = artifacts.require('BTMarket');
 const BetTogetherFactory = artifacts.require('BTMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
+const UniswapMockup = artifacts.require('UniswapMockup.sol');
 
 const NON_OCCURING = 0;
 const OCCURING = 1;
@@ -21,6 +22,7 @@ let aToken;
 let dai;
 let betTogether;
 let betTogetherFactory;
+let uniswap;
 let realitio;
 let user0;
 let user1;
@@ -47,12 +49,14 @@ contract('BetTogetherTests', (accounts) => {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
+    uniswap = await UniswapMockup.new();
     betTogetherFactory = await BetTogetherFactory.new(
       dai.address,
       aToken.address,
       aToken.address,
       aToken.address,
-      realitio.address
+      realitio.address,
+      uniswap.address
     );
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
     const eventName = 'Who will win the 2020 US General Election';
@@ -111,28 +115,33 @@ contract('BetTogetherTests', (accounts) => {
   });
 
   it('check market states transition', async () => {
+    await resetFutureTimestamps();
     const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
+    // opening date in the future, so revert;  no need to increment state cos automatic within
+    // the placeBet function via the checkState modifier
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WAITING);
     await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
-
+    // progress time so opening is in the past, should not revert
+    await time.increase(time.duration.seconds(150));
+    await placeBet(user0, NON_OCCURING, stake0);
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
+    // incrementing state should not change it
     await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
-    // incrementing state again here would change it to LOCKED as 'marketLockingTime' is set to 0 in the test
-
-    await placeBet(user0, NON_OCCURING, stake0);
-    await betTogether.incrementState(); // test mode allows to switch to LOCKED instantly
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
-    // incrementing state again doesn't change it
+    // it should change it if i progress another 100 seconds
+    await time.increase(time.duration.seconds(100));
     await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
-    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted; // too late
+    // incrementing state should not change it
+    await betTogether.incrementState();
+    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
+    // withdraw fail; too early
     await expect(betTogether.withdraw({from: user0})).to.be.reverted; // too early
-
+    // determine winner then end
     await realitio.setResult(OCCURING);
     await betTogether.determineWinner();
-
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
     await betTogether.withdraw({from: user0}); // should succeed now
     await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
@@ -202,6 +211,39 @@ contract('BetTogetherTests', (accounts) => {
     const marketAddress = await betTogetherFactory.marketAddresses.call(0);
     betTogether = await BetTogether.at(marketAddress);
     await betTogether.incrementState();
+  }
+
+  async function resetFutureTimestamps() {
+    dai = await DaiMockup.new();
+    aToken = await aTokenMockup.new(dai.address);
+    realitio = await RealitioMockup.new();
+    uniswap = await UniswapMockup.new();
+    betTogetherFactory = await BetTogetherFactory.new(
+      dai.address,
+      aToken.address,
+      aToken.address,
+      aToken.address,
+      realitio.address,
+      uniswap.address
+    );
+    const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
+    const eventName = 'Who will win the 2020 US General Election';
+    var marketOpeningTime = await time.latest();
+    marketOpeningTime = marketOpeningTime.toNumber() + 100;
+    var marketLockingTime = marketOpeningTime + 100;
+    var marketResolutionTime = marketLockingTime + 100;
+    const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
+    const outcomeNamesArray = ['Trump', 'Biden'];
+    await betTogetherFactory.createMarket(
+      eventName,
+      marketOpeningTime,
+      marketLockingTime,
+      marketResolutionTime,
+      30,
+      arbitrator,
+      question,
+      outcomeNamesArray
+    );
   }
 
   async function letOutcomeOccur() {
