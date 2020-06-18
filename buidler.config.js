@@ -8,10 +8,16 @@ const MNEMONIC = process.env.MNEMONIC;
 
 // Go to https://buidler.dev/config/ to learn more
 module.exports = {
+  networks: {
+    buidlerevm: {
+      gas: 9500000,
+      allowUnlimitedContractSize: true,
+    },
+  },
   solc: {
     version: '0.6.7',
     optimizer: {
-      enabled: true,
+      enabled: false, // for correct stack trace lines
       runs: 200,
     },
   },

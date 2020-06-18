@@ -10,6 +10,7 @@ import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 
+
 /// @title The MagicBet factory
 /// @notice This contract allows for generating new market instances
 contract MBMarketFactory is Ownable, Pausable {
