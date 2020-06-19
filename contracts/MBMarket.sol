@@ -13,7 +13,6 @@ import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 import './Token.sol';
 
-
 /// @title The MagicBet market instance
 /// @notice This contract is the framework of each new market
 contract MBMarket is Ownable, Pausable, ReentrancyGuard {

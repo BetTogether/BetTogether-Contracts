@@ -39,5 +39,9 @@ else
   start_ganache
 fi
 
-npx truffle version
-npx truffle test "$@"
+if [ "$BUIDLER" = true ]; then
+  npx buidler test "$@"
+else
+  npx truffle version
+  npx truffle test "$@"
+fi

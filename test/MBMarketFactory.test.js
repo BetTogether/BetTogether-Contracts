@@ -1,6 +1,13 @@
-'use strict';
+const BN = require('bn.js');
+const chai = require('chai');
+const chaiBN = require('chai-bn');
 
-const {BN, shouldFail, ether, expectEvent, balance, time} = require('@openzeppelin/test-helpers');
+chai.use(chaiBN(BN));
+
+const {expect} = chai;
+
+const {expectRevert, time} = require('@openzeppelin/test-helpers');
+const {errors} = require('./helpers');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
 const BetTogether = artifacts.require('MBMarket');
@@ -122,7 +129,7 @@ contract('BetTogetherTests', (accounts) => {
     // opening date in the future, so revert;  no need to increment state cos automatic within
     // the placeBet function via the checkState modifier
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WAITING);
-    await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.reverted;
+    await expectRevert(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState);
     // progress time so opening is in the past, should not revert
     await time.increase(time.duration.seconds(150));
     await placeBet(user0, NON_OCCURING, stake0);
@@ -138,14 +145,15 @@ contract('BetTogetherTests', (accounts) => {
     await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
     // withdraw fail; too early
-    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // too early
+    await expectRevert(betTogether.withdraw({from: user0}), errors.incorrectState); // too early
     // determine winner then end
     await realitio.setResult(OCCURING);
     await betTogether.determineWinner();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
     await betTogether.withdraw({from: user0}); // should succeed now
-    await expect(placeBet(user0, OCCURING, stake1)).to.be.reverted;
-    await expect(betTogether.withdraw({from: user0})).to.be.reverted; // not a second time!
+    await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
+    await expectRevert(betTogether.withdraw({from: user0}), errors.alreadyWithdrawn); // not a second time!
+
     // incrementing state again doesn't change it
     await betTogether.incrementState();
     expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
