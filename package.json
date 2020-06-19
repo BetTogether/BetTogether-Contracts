@@ -32,6 +32,7 @@
     }
   },
   "scripts": {
+    "test": "bash ./scripts/run_tests.sh",
     "prettier": "prettier --write '**/*.{js,sol}'",
     "pretty-quick": "pretty-quick"
   }
