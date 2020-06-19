@@ -43,7 +43,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
     States public state;
 
-    /// Betting variables
+    // Betting variables
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
@@ -428,8 +428,10 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
         address[] memory path = _getDAIforETHpath();
 
-        uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
-        msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
+        uniswapRouter.swapETHForExactTokens{value: msg.value}(daiAmount, path, address(this), now + 15);
+
+        (bool success, ) = msg.sender.call{value: address(this).balance}(''); // refund leftover ETH
+        require(success, 'Refund of ETH failed');
     }
 
     function _getDAIforETHpath() private view returns (address[] memory) {
