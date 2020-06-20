@@ -10,7 +10,6 @@ import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
 import './interfaces/IUniswapV2Router01.sol';
 
-
 /// @title The MagicBet factory
 /// @notice This contract allows for generating new market instances
 contract MBMarketFactory is Ownable, Pausable {
@@ -23,6 +22,7 @@ contract MBMarketFactory is Ownable, Pausable {
 
     mapping(address => bool) public mappingOfMarkets;
     address[] public marketAddresses;
+    address public mostRecentContract;
 
     event MarketCreated(address contractAddress);
 
@@ -83,6 +83,7 @@ contract MBMarketFactory is Ownable, Pausable {
         address newAddress = address(newContract);
         marketAddresses.push(newAddress);
         mappingOfMarkets[newAddress] = true;
+        mostRecentContract = newAddress;
         emit MarketCreated(address(newAddress));
         return newContract;
     }
