@@ -35,7 +35,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// Market Details ////////
     uint256 public maxInterest = 0; // for the front end
     uint256 public marketOpeningTime; // when the market can opened for bets
-    uint256 public marketOpeningTimeActual; // when the market is actually opened
     uint256 public marketLockingTime; // when the market is no longer open for bets
     uint256 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 inside Realitio
     bytes32 public questionId; // the question ID of the question on realitio
@@ -59,22 +58,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
     uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT; // start with incorrect winning outcome
-
-    function getCurrentState() public view returns (States) {
-        if (now < marketOpeningTime) {
-            return States.WAITING;
-        }
-
-        if (now >= marketOpeningTime && now < marketLockingTime) {
-            return States.OPEN;
-        }
-
-        if (winningOutcome == UNRESOLVED_OUTCOME_RESULT && now < (marketResolutionTime.add(ORACLE_TIMEOUT_TIME))) {
-            return States.LOCKED;
-        }
-
-        return States.WITHDRAW;
-    }
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -167,6 +150,34 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     ////////// VIEW FUNCTIONS //////////
     ////////////////////////////////////
+    function getCurrentState() public view returns (States) {
+        if (now < marketOpeningTime) {
+            return States.WAITING;
+        }
+
+        if (now >= marketOpeningTime && now < marketLockingTime) {
+            return States.OPEN;
+        }
+
+        if (winningOutcome == UNRESOLVED_OUTCOME_RESULT && now < (marketResolutionTime.add(ORACLE_TIMEOUT_TIME))) {
+            return States.LOCKED;
+        }
+
+        return States.WITHDRAW;
+    }
+
+    function getOutcomeNames() external view returns (string[] memory) {
+        return outcomeNames;
+    }
+
+    function getTokenAddresses() external view returns (Token[] memory) {
+        return tokenAddresses;
+    }
+
+    function getParticipants() external view returns (address[] memory) {
+        return participants;
+    }
+
     function getBetAmountsArray(uint256 _outcome) external view returns (uint256[] memory) {
         return betAmountsArray[_outcome];
     }
