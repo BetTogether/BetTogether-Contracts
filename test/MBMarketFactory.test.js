@@ -10,8 +10,8 @@ const {expectRevert, time} = require('@openzeppelin/test-helpers');
 const {errors} = require('./helpers');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
-const BetTogether = artifacts.require('MBMarket');
-const BetTogetherFactory = artifacts.require('MBMarketFactory');
+const MagicBet = artifacts.require('MBMarket');
+const MagicBetFactory = artifacts.require('MBMarketFactory');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 const UniswapMockup = artifacts.require('UniswapMockup.sol');
@@ -27,8 +27,8 @@ const stake4 = 400;
 
 let aToken;
 let dai;
-let betTogether;
-let betTogetherFactory;
+let magicBet;
+let magicBetFactory;
 let uniswap;
 let realitio;
 let user0;
@@ -41,7 +41,7 @@ let user3;
 // let user7;
 // let user8;
 
-contract('BetTogetherTests', (accounts) => {
+contract('MagicBetTests', (accounts) => {
   user0 = accounts[0];
   user1 = accounts[1];
   user2 = accounts[2];
@@ -57,7 +57,7 @@ contract('BetTogetherTests', (accounts) => {
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
     uniswap = await UniswapMockup.new();
-    betTogetherFactory = await BetTogetherFactory.new(
+    magicBetFactory = await MagicBetFactory.new(
       dai.address,
       aToken.address,
       aToken.address,
@@ -67,14 +67,15 @@ contract('BetTogetherTests', (accounts) => {
     );
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
     const eventName = 'Who will win the 2020 US General Election';
-    const marketOpeningTime = 0;
-    const marketResolutionTime = 0;
+    const marketOpeningTime = (await time.latest()).toNumber() + 100;
+    const marketLockingTime = marketOpeningTime + 100;
+    const marketResolutionTime = marketLockingTime + 100;
     const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
     const outcomeNamesArray = ['Trump', 'Biden'];
-    await betTogetherFactory.createMarket(
+    await magicBetFactory.createMarket(
       eventName,
       marketOpeningTime,
-      marketOpeningTime,
+      marketLockingTime,
       marketResolutionTime,
       30,
       arbitrator,
@@ -85,8 +86,8 @@ contract('BetTogetherTests', (accounts) => {
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
     await prepareForBetting();
-
     await placeBet(user0, NON_OCCURING, stake0);
+
     await placeBet(user1, NON_OCCURING, stake1);
     await placeBet(user2, NON_OCCURING, stake2);
     await placeBet(user2, OCCURING, stake3);
@@ -115,48 +116,37 @@ contract('BetTogetherTests', (accounts) => {
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check totalBets and betsWithdrawn
-    const totalBets = await betTogether.totalBets.call();
+    const totalBets = await magicBet.totalBets.call();
     assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
-    const betsWithdrawn = await betTogether.betsWithdrawn.call();
+    const betsWithdrawn = await magicBet.betsWithdrawn.call();
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
   });
 
   it('check market states transition', async () => {
     await resetFutureTimestamps();
-    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
-    betTogether = await BetTogether.at(marketAddress);
-    const marketStates = Object.freeze({SETUP: 0, WAITING: 1, OPEN: 2, LOCKED: 3, WITHDRAW: 4});
+    const marketAddress = await magicBetFactory.marketAddresses.call(0);
+    magicBet = await MagicBet.at(marketAddress);
+    const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
     // opening date in the future, so revert;  no need to increment state cos automatic within
     // the placeBet function via the checkState modifier
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WAITING);
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WAITING);
     await expectRevert(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState);
     // progress time so opening is in the past, should not revert
     await time.increase(time.duration.seconds(150));
     await placeBet(user0, NON_OCCURING, stake0);
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
-    // incrementing state should not change it
-    await betTogether.incrementState();
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.OPEN);
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.OPEN);
     // it should change it if i progress another 100 seconds
     await time.increase(time.duration.seconds(100));
-    await betTogether.incrementState();
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
-    // incrementing state should not change it
-    await betTogether.incrementState();
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.LOCKED);
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.LOCKED);
     // withdraw fail; too early
-    await expectRevert(betTogether.withdraw({from: user0}), errors.incorrectState); // too early
+    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState); // too early
     // determine winner then end
     await realitio.setResult(OCCURING);
-    await betTogether.determineWinner();
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
-    await betTogether.withdraw({from: user0}); // should succeed now
+    await magicBet.determineWinner();
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
+    await magicBet.withdraw({from: user0}); // should succeed now
     await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
-    await expectRevert(betTogether.withdraw({from: user0}), errors.alreadyWithdrawn); // not a second time!
-
-    // incrementing state again doesn't change it
-    await betTogether.incrementState();
-    expect((await betTogether.state()).toNumber()).to.equal(marketStates.WITHDRAW);
+    await expectRevert(magicBet.withdraw({from: user0}), errors.alreadyWithdrawn); // not a second time!
   });
 
   it('one user betting multiple times receives all stake plus total interest', async () => {
@@ -206,19 +196,19 @@ contract('BetTogetherTests', (accounts) => {
     await prepareForBetting();
     await placeBet(user0, NON_OCCURING, stake0);
     await letOutcomeOccur();
-    let totalInterest = await betTogether.getTotalInterest();
+    let totalInterest = await magicBet.getTotalInterest();
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
 
     const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
     expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
-    totalInterest = await betTogether.getTotalInterest();
+    totalInterest = await magicBet.getTotalInterest();
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
   });
 
   async function prepareForBetting() {
-    const marketAddress = await betTogetherFactory.marketAddresses.call(0);
-    betTogether = await BetTogether.at(marketAddress);
-    await betTogether.incrementState();
+    const marketAddress = await magicBetFactory.marketAddresses.call(0);
+    magicBet = await MagicBet.at(marketAddress);
+    await time.increase(time.duration.seconds(100));
   }
 
   async function resetFutureTimestamps() {
@@ -226,7 +216,7 @@ contract('BetTogetherTests', (accounts) => {
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
     uniswap = await UniswapMockup.new();
-    betTogetherFactory = await BetTogetherFactory.new(
+    magicBetFactory = await MagicBetFactory.new(
       dai.address,
       aToken.address,
       aToken.address,
@@ -242,7 +232,8 @@ contract('BetTogetherTests', (accounts) => {
     var marketResolutionTime = marketLockingTime + 100;
     const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
     const outcomeNamesArray = ['Trump', 'Biden'];
-    await betTogetherFactory.createMarket(
+
+    await magicBetFactory.createMarket(
       eventName,
       marketOpeningTime,
       marketLockingTime,
@@ -255,22 +246,22 @@ contract('BetTogetherTests', (accounts) => {
   }
 
   async function letOutcomeOccur() {
-    await aToken.generate10PercentInterest(betTogether.address);
-    await betTogether.incrementState();
+    await aToken.generate10PercentInterest(magicBet.address);
     await realitio.setResult(OCCURING);
-    await betTogether.determineWinner();
+    await magicBet.determineWinner();
+    await time.increase(time.duration.seconds(100));
   }
 
   async function letInvalidOutcomeOccur() {
-    await aToken.generate10PercentInterest(betTogether.address);
-    await betTogether.incrementState();
+    await aToken.generate10PercentInterest(magicBet.address);
     await realitio.setResult(OCCURING + 1);
-    await betTogether.determineWinner();
+    await magicBet.determineWinner();
+    await time.increase(time.duration.seconds(100));
   }
 
   async function placeBet(user, outcome, stake) {
     await dai.mint(web3.utils.toWei(stake.toString(), 'ether'), {from: user});
-    await betTogether.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
+    await magicBet.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });
   }
@@ -282,12 +273,12 @@ contract('BetTogetherTests', (accounts) => {
     _totalStake,
     _totalWinningStake
   ) {
-    await betTogether.withdraw({
+    await magicBet.withdraw({
       from: _user,
     });
     const actualBalance = await dai.balanceOf(_user);
     let expectedBalance = _stakeOnWinning + _stakeOnLosing;
-    const outcome = await betTogether.winningOutcome();
+    const outcome = await magicBet.winningOutcome();
     const invalidOutcome = outcome != OCCURING && outcome != NON_OCCURING;
 
     if (_stakeOnWinning > 0 || _totalWinningStake == 0 || invalidOutcome) {

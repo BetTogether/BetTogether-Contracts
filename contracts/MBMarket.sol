@@ -22,6 +22,9 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// VARIABLES /////////////////
     ////////////////////////////////////
 
+    uint256 public constant UNRESOLVED_OUTCOME_RESULT = type(uint256).max;
+    uint256 public constant ORACLE_TIMEOUT_TIME = 4 weeks;
+
     //////// Externals ////////
     Dai public dai;
     IaToken public aToken;
@@ -30,20 +33,18 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     IUniswapV2Router01 public uniswapRouter;
 
     //////// Market Details ////////
-    uint256 public maxInterest; //for the front end
+    uint256 public maxInterest = 0; // for the front end
     uint256 public marketOpeningTime; // when the market can opened for bets
-    uint256 public marketOpeningTimeActual; //when the market is actually opened
     uint256 public marketLockingTime; // when the market is no longer open for bets
-    uint32 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 cos Realitio needs it
+    uint256 public marketResolutionTime; // the time the realitio market is able to be answered, uint32 inside Realitio
     bytes32 public questionId; // the question ID of the question on realitio
     string public eventName;
     string[] public outcomeNames;
     Token[] public tokenAddresses;
     uint256 public numberOfOutcomes;
-    enum States {SETUP, WAITING, OPEN, LOCKED, WITHDRAW}
-    States public state;
+    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
 
-    /// Betting variables
+    // Betting variables
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
@@ -56,8 +57,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     //////// Market resolution variables ////////
     mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
-    uint256 public winningOutcome = 69; // start with incorrect winning outcome
-    bool public questionResolvedInvalid = true; // default to true
+    uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT; // start with incorrect winning outcome
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -108,7 +108,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
             _realitioQuestion,
             _arbitrator,
             uint32(_marketTimes[3]),
-            marketResolutionTime,
+            uint32(marketResolutionTime),
             _nonce
         );
     }
@@ -133,31 +133,51 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         eventName = _eventName;
     }
 
-    function _createTokenContract(string memory _outcomeName) internal checkState(States.SETUP) {
+    function _createTokenContract(string memory _outcomeName) internal {
         outcomeNames.push(_outcomeName);
         Token tokenContract = new Token({_tokenName: _outcomeName});
         tokenAddresses.push(tokenContract);
-
-        if (tokenAddresses.length == numberOfOutcomes) {
-            state = States(uint256(state) + 1);
-        }
     }
 
     ////////////////////////////////////
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
-    modifier checkState(States currentState) {
-        if (state != currentState) {
-            incrementState();
-        }
-
-        require(state == currentState, 'function cannot be called at this time');
+    modifier checkState(States requiredState) {
+        require(getCurrentState() == requiredState, 'function cannot be called at this time');
         _;
     }
 
     ////////////////////////////////////
     ////////// VIEW FUNCTIONS //////////
     ////////////////////////////////////
+    function getCurrentState() public view returns (States) {
+        if (now < marketOpeningTime) {
+            return States.WAITING;
+        }
+
+        if (now >= marketOpeningTime && now < marketLockingTime) {
+            return States.OPEN;
+        }
+
+        if (winningOutcome == UNRESOLVED_OUTCOME_RESULT && now < (marketResolutionTime.add(ORACLE_TIMEOUT_TIME))) {
+            return States.LOCKED;
+        }
+
+        return States.WITHDRAW;
+    }
+
+    function getOutcomeNames() external view returns (string[] memory) {
+        return outcomeNames;
+    }
+
+    function getTokenAddresses() external view returns (Token[] memory) {
+        return tokenAddresses;
+    }
+
+    function getParticipants() external view returns (address[] memory) {
+        return participants;
+    }
+
     function getBetAmountsArray(uint256 _outcome) external view returns (uint256[] memory) {
         return betAmountsArray[_outcome];
     }
@@ -176,7 +196,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function getMaxTotalInterest() public view returns (uint256) {
-        if (state == States.WITHDRAW) {
+        if (maxInterest > 0) {
             return maxInterest;
         } else {
             return getTotalInterest();
@@ -328,43 +348,17 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function determineWinner() external whenNotPaused {
         require(_isQuestionFinalized(), 'Oracle has not finalised');
         winningOutcome = _determineWinner();
-        if (winningOutcome != ((2**256) - 1) && totalBetsPerOutcome[winningOutcome] > 0) {
-            questionResolvedInvalid = false;
-        }
-        incrementState();
-    }
-
-    /// @dev keep this public as it's called by determineWinner
-    /// @dev not onlyOwner, can be called by anyone, this is fine
-    function incrementState() public whenNotPaused {
-        if (
-            ((state == States.WAITING) && (marketOpeningTime < now)) ||
-            ((state == States.OPEN) && (marketLockingTime < now)) ||
-            ((state == States.LOCKED) && (winningOutcome != 69))
-        ) {
-            if (state == States.WAITING) {
-                marketOpeningTimeActual = now;
-            }
-            if (state == States.LOCKED) {
-                maxInterest = getTotalInterest();
-            }
-            state = States(uint256(state) + 1);
-            emit StateChanged(state);
-        }
-    }
-
-    /// @dev change state to WITHDRAW to lock contract and return all funds
-    /// @dev in case Oracle never resolves
-    function circuitBreaker() external {
-        require(now > (marketResolutionTime + 4 weeks), 'Too early');
-        questionResolvedInvalid = true;
-        state = States.WITHDRAW;
     }
 
     function withdraw() external checkState(States.WITHDRAW) whenNotPaused nonReentrant {
         require(!withdrawnBool[msg.sender], 'Already withdrawn');
         withdrawnBool[msg.sender] = true;
-        if (!questionResolvedInvalid) {
+
+        if (maxInterest == 0) {
+            maxInterest = getTotalInterest();
+        }
+
+        if (winningOutcome != UNRESOLVED_OUTCOME_RESULT && totalBetsPerOutcome[winningOutcome] > 0) {
             _payoutWinnings();
         } else {
             _payoutWinningsInvalid();
@@ -428,8 +422,10 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
         address[] memory path = _getDAIforETHpath();
 
-        uniswapRouter.swapETHForExactTokens.value(msg.value)(daiAmount, path, address(this), now + 15);
-        msg.sender.call.value(address(this).balance)(''); // refund leftover ETH
+        uniswapRouter.swapETHForExactTokens{value: msg.value}(daiAmount, path, address(this), now + 15);
+
+        (bool success, ) = msg.sender.call{value: address(this).balance}(''); // refund leftover ETH
+        require(success, 'Refund of ETH failed');
     }
 
     function _getDAIforETHpath() private view returns (address[] memory) {

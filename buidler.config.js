@@ -15,7 +15,7 @@ module.exports = {
     },
   },
   solc: {
-    version: '0.6.7',
+    version: '0.6.10',
     optimizer: {
       enabled: false, // for correct stack trace lines
       runs: 200,
