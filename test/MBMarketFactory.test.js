@@ -205,6 +205,12 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
   });
 
+  it("can't determine winner if oracle has not yet resolved", async () => {
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0);
+    await expectRevert(magicBet.determineWinner(), errors.oracleNotFinalised);
+  });
+
   async function prepareForBetting() {
     const marketAddress = await magicBetFactory.marketAddresses.call(0);
     magicBet = await MagicBet.at(marketAddress);
