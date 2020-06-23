@@ -210,11 +210,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         return _totalInterest;
     }
 
-    function getWinningsGivenOutcome(uint256 _outcome) external view returns (uint256) {
-        return _getWinningsGivenOutcome(_outcome);
-    }
-
-    function _getWinningsGivenOutcome(uint256 _outcome) internal view returns (uint256) {
+    function getWinningsGivenOutcome(uint256 _outcome) public view returns (uint256) {
         Token _token = Token(tokenAddresses[_outcome]);
         uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
         uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
@@ -358,7 +354,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
             maxInterest = getTotalInterest();
         }
 
-        if (winningOutcome != UNRESOLVED_OUTCOME_RESULT && totalBetsPerOutcome[winningOutcome] > 0) {
+        if (totalBetsPerOutcome[winningOutcome] > 0) {
             _payoutWinnings();
         } else {
             _payoutWinningsInvalid();
@@ -370,7 +366,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// INTERNAL FUNCTIONS ////////
     ////////////////////////////////////
     function _payoutWinnings() internal {
-        uint256 _winnings = _getWinningsGivenOutcome(winningOutcome);
+        uint256 _winnings = getWinningsGivenOutcome(winningOutcome);
         uint256 _daiToSend = _winnings.add(totalBetsPerUser[msg.sender]);
         // externals
         if (_daiToSend > 0) {
