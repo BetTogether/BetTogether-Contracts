@@ -8,10 +8,12 @@ const {expect} = chai;
 
 const {expectRevert, time} = require('@openzeppelin/test-helpers');
 const {errors} = require('./helpers');
+const {assert} = require('chai');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
 const MagicBet = artifacts.require('MBMarket');
 const MagicBetFactory = artifacts.require('MBMarketFactory');
+const Token = artifacts.require('Token');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 const UniswapMockup = artifacts.require('UniswapMockup.sol');
@@ -84,14 +86,32 @@ contract('MagicBetTests', (accounts) => {
     );
   });
 
-  it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
+  it('betting leads to winners receiving both stake and interest, losers receiving their stake back; check ERC20s are minted and then destroyed', async () => {
     await prepareForBetting();
     await placeBet(user0, NON_OCCURING, stake0);
-
     await placeBet(user1, NON_OCCURING, stake1);
     await placeBet(user2, NON_OCCURING, stake2);
     await placeBet(user2, OCCURING, stake3);
     await placeBet(user3, OCCURING, stake4);
+
+    // check that ERC20s are minted
+    await initialiseERC20s();
+    let tokenBalance = await token1.balanceOf(user0);
+    let expectedBalance = new BN(web3.utils.toWei(stake0.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user1);
+    expectedBalance = new BN(web3.utils.toWei(stake1.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user2);
+    expectedBalance = new BN(web3.utils.toWei(stake2.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user2);
+    expectedBalance = new BN(web3.utils.toWei(stake3.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user3);
+    expectedBalance = new BN(web3.utils.toWei(stake4.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+
     const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
     const totalWinningStake = stake3 + stake4;
 
@@ -120,6 +140,18 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
     const betsWithdrawn = await magicBet.betsWithdrawn.call();
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+
+    // check that ERC20s have been burnt
+    tokenBalance = await token1.balanceOf(user0);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user1);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user2);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user2);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user3);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
   });
 
   it('check market states transition', async () => {
@@ -324,6 +356,14 @@ contract('MagicBetTests', (accounts) => {
     await magicBet.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });
+  }
+
+  async function initialiseERC20s() {
+    let tokenAddresses = await magicBet.getTokenAddresses.call();
+    let tokenAddress1 = tokenAddresses[0];
+    let tokenAddress2 = tokenAddresses[1];
+    token1 = await Token.at(tokenAddress1);
+    token2 = await Token.at(tokenAddress2);
   }
 
   async function resetFutureTimestamps() {
