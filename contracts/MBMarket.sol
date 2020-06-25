@@ -77,7 +77,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
         }
-        console.log('making contract');
+
         // Externals
         dai = _daiAddress;
         aToken = IaToken(_aaveAddresses[0]);
