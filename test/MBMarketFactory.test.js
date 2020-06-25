@@ -298,8 +298,8 @@ contract('MagicBetTests', (accounts) => {
       expectedBalance += shareOfInterest;
     }
     return {
-      actualBalance: actualBalance,
-      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether'),
+      actualBalance: actualBalance.toString(),
+      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether').toString(),
     };
   }
 });

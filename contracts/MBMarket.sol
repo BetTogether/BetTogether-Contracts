@@ -18,6 +18,8 @@ import './Token.sol';
 contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
 
+    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
+
     ////////////////////////////////////
     //////// VARIABLES /////////////////
     ////////////////////////////////////
@@ -42,22 +44,22 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     string[] public outcomeNames;
     Token[] public tokenAddresses;
     uint256 public numberOfOutcomes;
-    enum States {WAITING, OPEN, LOCKED, WITHDRAW}
 
-    // Betting variables
-    mapping(uint256 => uint256[]) private betAmountsArray;
-    mapping(uint256 => uint256[]) private timestampsArray;
+    //////// Betting variables ////////
     mapping(uint256 => uint256) public totalBetsPerOutcome;
     mapping(address => uint256) public totalBetsPerUser;
     mapping(uint256 => uint256) public betsWithdrawnPerOutcome;
     mapping(uint256 => uint256) public usersPerOutcome;
+    mapping(uint256 => uint256[]) private betAmountsArray;
+    mapping(uint256 => uint256[]) private timestampsArray;
+
     uint256 public totalBets;
     uint256 public betsWithdrawn;
     address[] public participants;
 
     //////// Market resolution variables ////////
-    mapping(address => bool) public withdrawnBool; //so participants can only withdraw once
-    uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT; // start with incorrect winning outcome
+    mapping(address => bool) public hasWithdrawn;
+    uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT;
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
@@ -77,25 +79,24 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         if (_owner != msg.sender) {
             transferOwnership(_owner);
         }
-        // Externals
+        // externals
         dai = _daiAddress;
         aToken = IaToken(_aaveAddresses[0]);
         aaveLendingPool = IAaveLendingPool(_aaveAddresses[1]);
         realitio = _realitioAddress;
         uniswapRouter = _uniswapRouter;
 
-        // Approvals
-        dai.approve(_aaveAddresses[2], 2**255);
+        // approvals
+        dai.approve(_aaveAddresses[2], type(uint256).max);
 
-        // Pass arguments to public variables
-
+        // pass arguments to public variables
         eventName = _eventName;
         marketOpeningTime = _marketTimes[0];
         marketLockingTime = _marketTimes[1];
         marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _outcomeNamesArray.length;
 
-        //create the tokens
+        // create the tokens
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             _createTokenContract(_outcomeNamesArray[i]);
         }
@@ -124,14 +125,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// INITIAL SETUP /////////////
     ////////////////////////////////////
-    // you cannot pass an array of strings as an argument
-    // string manipulation is also difficult, so it is not easy to parse the relevant
-    // ... info from the _realitioQuestion string. So, manually set this info
-    // probably redundant, the front end can store this, just adding in case
-
-    function setEventName(string calldata _eventName) external onlyOwner {
-        eventName = _eventName;
-    }
 
     function _createTokenContract(string memory _outcomeName) internal {
         outcomeNames.push(_outcomeName);
@@ -207,6 +200,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         uint256 _remainingBet = totalBets.sub(betsWithdrawn);
         uint256 _totalAdaibalances = aToken.balanceOf(address(this));
         uint256 _totalInterest = _totalAdaibalances.sub(_remainingBet);
+
         return _totalInterest;
     }
 
@@ -218,6 +212,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         Token _token = Token(tokenAddresses[_outcome]);
         uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
         uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
+
         return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
     }
 
@@ -229,13 +224,11 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
         address[] memory path = _getDAIforETHpath();
-
         return uniswapRouter.getAmountsIn(ethAmount, path);
     }
 
     function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
         address[] memory path = _getDAIforETHpath();
-
         return uniswapRouter.getAmountsOut(daiAmount, path);
     }
 
@@ -248,18 +241,15 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         view
         returns (uint256)
     {
-        uint256 winnings;
+        uint256 winnings = 0;
+
         if (_totalBetAmount > 0) {
             uint256 _totalInterest = getTotalInterest();
             winnings = (_totalInterest.mul(_userBetOutcomeAmount)).div(_totalBetAmount);
         }
+
         return winnings;
     }
-
-    // need the interest rate for this
-    // function getEstimatedReturn(uint _outcome) returns (uint) {
-    //     uint _timeLocked = marketResolutionTime.
-    // }
 
     ////////////////////////////////////
     //////// REALIITO FUNCTIONS ////////
@@ -351,8 +341,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function withdraw() external checkState(States.WITHDRAW) whenNotPaused nonReentrant {
-        require(!withdrawnBool[msg.sender], 'Already withdrawn');
-        withdrawnBool[msg.sender] = true;
+        require(!hasWithdrawn[msg.sender], 'Already withdrawn');
+        hasWithdrawn[msg.sender] = true;
 
         if (maxInterest == 0) {
             maxInterest = getTotalInterest();
@@ -363,6 +353,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         } else {
             _payoutWinningsInvalid();
         }
+
         _burnUsersTokens();
     }
 
@@ -372,6 +363,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function _payoutWinnings() internal {
         uint256 _winnings = _getWinningsGivenOutcome(winningOutcome);
         uint256 _daiToSend = _winnings.add(totalBetsPerUser[msg.sender]);
+
         // externals
         if (_daiToSend > 0) {
             _redeemFromAave(_daiToSend);
@@ -382,6 +374,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function _payoutWinningsInvalid() internal {
         uint256 _winningsInvalid = getWinningsInvalid();
         uint256 _daiToSend = _winningsInvalid.add(totalBetsPerUser[msg.sender]);
+
         // externals
         if (_daiToSend > 0) {
             _redeemFromAave(_daiToSend);
@@ -390,33 +383,35 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _placeBet(uint256 _outcome, uint256 _dai) internal {
+        Token _token = tokenAddresses[_outcome];
+
         betAmountsArray[_outcome].push(_dai);
         timestampsArray[_outcome].push(now);
-        Token _token = Token(tokenAddresses[_outcome]);
+
         if (_token.balanceOf(msg.sender) == 0) {
             participants.push(msg.sender);
             usersPerOutcome[_outcome] = usersPerOutcome[_outcome].add(1);
         }
-        emit ParticipantEntered(msg.sender);
+
         _token.mint(msg.sender, _dai);
         totalBets = totalBets.add(_dai);
         totalBetsPerOutcome[_outcome] = totalBetsPerOutcome[_outcome].add(_dai);
         totalBetsPerUser[msg.sender] = totalBetsPerUser[msg.sender].add(_dai);
+
+        emit ParticipantEntered(msg.sender);
     }
 
     function _burnUsersTokens() internal {
-        uint256 _userBetsAllOutcomes;
-        for (uint256 i = 0; i < numberOfOutcomes; i++) {
-            Token _token = Token(tokenAddresses[i]);
+        if (winningOutcome != UNRESOLVED_OUTCOME_RESULT && winningOutcome < tokenAddresses.length) {
+            Token _token = tokenAddresses[winningOutcome];
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
+
             if (_userBetThisOutcome > 0) {
-                _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
-                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetThisOutcome);
                 _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
-        assert(_userBetsAllOutcomes == totalBetsPerUser[msg.sender]);
-        betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
+
+        betsWithdrawn = betsWithdrawn.add(totalBetsPerUser[msg.sender]);
     }
 
     function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
