@@ -146,7 +146,6 @@ contract('MagicBetTests', (accounts) => {
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
     await magicBet.withdraw({from: user0}); // should succeed now
     await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
-    await expectRevert(magicBet.withdraw({from: user0}), errors.alreadyWithdrawn); // not a second time!
   });
 
   it('one user betting multiple times receives all stake plus total interest', async () => {
@@ -298,8 +297,8 @@ contract('MagicBetTests', (accounts) => {
       expectedBalance += shareOfInterest;
     }
     return {
-      actualBalance: actualBalance,
-      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether'),
+      actualBalance: actualBalance.toString(),
+      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether').toString(),
     };
   }
 });
