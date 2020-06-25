@@ -402,16 +402,18 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _burnUsersTokens() internal {
-        if (winningOutcome != UNRESOLVED_OUTCOME_RESULT && winningOutcome < tokenAddresses.length) {
-            Token _token = tokenAddresses[winningOutcome];
+        uint256 _userBetsAllOutcomes;
+        for (uint256 i = 0; i < numberOfOutcomes; i++) {
+            Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
-
             if (_userBetThisOutcome > 0) {
+                _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
+                betsWithdrawnPerOutcome[i] = betsWithdrawnPerOutcome[i].add(_userBetThisOutcome);
                 _token.burn(msg.sender, _userBetThisOutcome);
             }
         }
-
-        betsWithdrawn = betsWithdrawn.add(totalBetsPerUser[msg.sender]);
+        assert(_userBetsAllOutcomes == totalBetsPerUser[msg.sender]);
+        betsWithdrawn = betsWithdrawn.add(_userBetsAllOutcomes);
     }
 
     function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
