@@ -58,7 +58,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     address[] public participants;
 
     //////// Market resolution variables ////////
-    mapping(address => bool) public hasWithdrawn;
     uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT;
 
     ////////////////////////////////////
@@ -341,9 +340,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function withdraw() external checkState(States.WITHDRAW) whenNotPaused nonReentrant {
-        require(!hasWithdrawn[msg.sender], 'Already withdrawn');
-        hasWithdrawn[msg.sender] = true;
-
         if (maxInterest == 0) {
             maxInterest = getTotalInterest();
         }
