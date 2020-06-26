@@ -42,10 +42,10 @@ let user3;
 // let user8;
 
 contract('MagicBetTests', (accounts) => {
-  user0 = accounts[0]; //0xc783df8a850f42e7F7e57013759C285caa701eB6
-  user1 = accounts[1]; //0xeAD9C93b79Ae7C1591b1FB5323BD777E86e150d4
-  user2 = accounts[2]; //0xE5904695748fe4A84b40b3fc79De2277660BD1D3
-  user3 = accounts[3]; //0x92561F28Ec438Ee9831D00D1D59fbDC981b762b2
+  user0 = accounts[0];
+  user1 = accounts[1];
+  user2 = accounts[2];
+  user3 = accounts[3];
   // user4 = accounts[4];
   // user5 = accounts[5];
   // user6 = accounts[6];
@@ -86,12 +86,12 @@ contract('MagicBetTests', (accounts) => {
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
     await prepareForBetting();
-    await placeBet(user0, NON_OCCURING, stake0); //200
+    await placeBet(user0, NON_OCCURING, stake0);
 
-    await placeBet(user1, NON_OCCURING, stake1); //300
-    await placeBet(user2, NON_OCCURING, stake2); //500
-    await placeBet(user2, OCCURING, stake3); //100
-    await placeBet(user3, OCCURING, stake4); //400
+    await placeBet(user1, NON_OCCURING, stake1);
+    await placeBet(user2, NON_OCCURING, stake2);
+    await placeBet(user2, OCCURING, stake3);
+    await placeBet(user3, OCCURING, stake4);
     const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
     const totalWinningStake = stake3 + stake4;
 
@@ -104,12 +104,9 @@ contract('MagicBetTests', (accounts) => {
       stake2,
       totalStake,
       totalWinningStake
-    ); 
-    // user/staked on winning/staked on losing
+    ); // user/staked on winning/staked on losing
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    userResult =
-      withdrawAndReturnActualAndExpectedBalance(user3, stake4, 0, totalStake, totalWinningStake
-    );
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user3, stake4, 0, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check returned deposit for losers user0 and user1
@@ -125,180 +122,180 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
   });
 
-    it('check market states transition', async () => {
-      await resetFutureTimestamps();
-      const marketAddress = await magicBetFactory.marketAddresses.call(0);
-      magicBet = await MagicBet.at(marketAddress);
-      const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
-      // opening date in the future, so revert;  no need to increment state cos automatic within
-      // the placeBet function via the checkState modifier
-      expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WAITING);
-      await expectRevert(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState);
-      // progress time so opening is in the past, should not revert
-      await time.increase(time.duration.seconds(150));
-      await placeBet(user0, NON_OCCURING, stake0);
-      expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.OPEN);
-      // it should change it if i progress another 100 seconds
-      await time.increase(time.duration.seconds(100));
-      expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.LOCKED);
-      // withdraw fail; too early
-      await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState); // too early
-      // determine winner then end
-      await realitio.setResult(OCCURING);
-      await magicBet.determineWinner();
-      expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
-      await magicBet.withdraw({from: user0}); // should succeed now
-      await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
-    });
+  it('check market states transition', async () => {
+    await resetFutureTimestamps();
+    const marketAddress = await magicBetFactory.marketAddresses.call(0);
+    magicBet = await MagicBet.at(marketAddress);
+    const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
+    // opening date in the future, so revert;  no need to increment state cos automatic within
+    // the placeBet function via the checkState modifier
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WAITING);
+    await expectRevert(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState);
+    // progress time so opening is in the past, should not revert
+    await time.increase(time.duration.seconds(150));
+    await placeBet(user0, NON_OCCURING, stake0);
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.OPEN);
+    // it should change it if i progress another 100 seconds
+    await time.increase(time.duration.seconds(100));
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.LOCKED);
+    // withdraw fail; too early
+    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState); // too early
+    // determine winner then end
+    await realitio.setResult(OCCURING);
+    await magicBet.determineWinner();
+    expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
+    await magicBet.withdraw({from: user0}); // should succeed now
+    await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
+  });
 
-    it('one user betting multiple times receives all stake plus total interest', async () => {
-      const totalLosingStake = stake0 + stake1 + stake2;
-      const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
-      const totalWinningStake = stake3 + stake4;
-      await prepareForBetting();
+  it('one user betting multiple times receives all stake plus total interest', async () => {
+    const totalLosingStake = stake0 + stake1 + stake2;
+    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+    const totalWinningStake = stake3 + stake4;
+    await prepareForBetting();
 
-      await placeBet(user0, NON_OCCURING, stake0);
-      await placeBet(user0, NON_OCCURING, stake1);
-      await placeBet(user0, NON_OCCURING, stake2);
-      await placeBet(user0, OCCURING, stake3);
-      await placeBet(user0, OCCURING, stake4);
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user0, NON_OCCURING, stake1);
+    await placeBet(user0, NON_OCCURING, stake2);
+    await placeBet(user0, OCCURING, stake3);
+    await placeBet(user0, OCCURING, stake4);
 
-      await letOutcomeOccur();
+    await letOutcomeOccur();
 
-      const userResult = await withdrawAndReturnActualAndExpectedBalance(
-        user0,
-        totalWinningStake,
-        totalLosingStake,
-        totalStake,
-        totalWinningStake
-      );
-      assert.equal(userResult.actualBalance, userResult.expectedBalance);
-    });
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(
+      user0,
+      totalWinningStake,
+      totalLosingStake,
+      totalStake,
+      totalWinningStake
+    );
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+  });
 
-    it('payout all stakes plus interest in case of winning outcome does not exist', async () => {
-      // = users have a choice of 0 and 1, but 2 wins
-      const totalStake = stake0 + stake1;
-      const totalWinningStake = stake1;
-      await prepareForBetting();
+  it('payout all stakes plus interest in case of winning outcome does not exist', async () => {
+    // = users have a choice of 0 and 1, but 2 wins
+    const totalStake = stake0 + stake1;
+    const totalWinningStake = stake1;
+    await prepareForBetting();
 
-      await placeBet(user0, NON_OCCURING, stake0);
-      await placeBet(user1, OCCURING, stake1);
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user1, OCCURING, stake1);
 
-      await letOutcomeDoesntExistOccur();
+    await letOutcomeDoesntExistOccur();
 
-      let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
-      expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
-      userResult = await withdrawAndReturnActualAndExpectedBalance(user1, stake1, 0, totalStake, totalWinningStake);
-      expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
-    });
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, stake1, 0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+  });
 
-    it('payout stake plus interest in case of no winner', async () => {
-      const totalStake = stake0;
-      const totalWinningStake = 0;
-      const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
-      await prepareForBetting();
-      await placeBet(user0, NON_OCCURING, stake0);
-      await letOutcomeOccur();
-      let totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+  it('payout stake plus interest in case of no winner', async () => {
+    const totalStake = stake0;
+    const totalWinningStake = 0;
+    const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0);
+    await letOutcomeOccur();
+    let totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
 
-      const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
-      expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(new BN(0));
-    });
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
 
-    it("can't determine winner if oracle has not yet resolved", async () => {
-      await prepareForBetting();
-      await placeBet(user0, NON_OCCURING, stake0);
-      await expectRevert(magicBet.determineWinner(), errors.oracleNotFinalised);
-    });
+  it("can't determine winner if oracle has not yet resolved", async () => {
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0);
+    await expectRevert(magicBet.determineWinner(), errors.oracleNotFinalised);
+  });
 
-    it('check getTotalInterest', async () => {
-      await prepareForBetting();
-      await placeBet(user0, NON_OCCURING, stake0);
-      await placeBet(user1, OCCURING, stake1);
-      await placeBet(user2, OCCURING, stake2);
-      // total interest should be zero
-      let totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(new BN(0));
-      await letOutcomeOccur();
-      // interest should be 10% of total stake
-      let totalStake = stake0 + stake1 + stake2;
-      totalInterest = await magicBet.getTotalInterest();
-      let expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
-      // loser withdraws, total interest should be unchanged
-      await magicBet.withdraw({from: user0});
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
-      // one of the winners withdraws, should be drop in interest
-      await magicBet.withdraw({from: user1});
-      expectedInterest = new BN(web3.utils.toWei(((totalStake / 10) * (stake2 / (stake1 + stake2))).toString(), 'ether'));
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
-      //final withdrawal, should be no interest left
-      await magicBet.withdraw({from: user2});
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(new BN(0));
-    });
+  it('check getTotalInterest', async () => {
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user1, OCCURING, stake1);
+    await placeBet(user2, OCCURING, stake2);
+    // total interest should be zero
+    let totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+    await letOutcomeOccur();
+    // interest should be 10% of total stake
+    let totalStake = stake0 + stake1 + stake2;
+    totalInterest = await magicBet.getTotalInterest();
+    let expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+    // loser withdraws, total interest should be unchanged
+    await magicBet.withdraw({from: user0});
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+    // one of the winners withdraws, should be drop in interest
+    await magicBet.withdraw({from: user1});
+    expectedInterest = new BN(web3.utils.toWei(((totalStake / 10) * (stake2 / (stake1 + stake2))).toString(), 'ether'));
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+    //final withdrawal, should be no interest left
+    await magicBet.withdraw({from: user2});
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
 
-    it('check getTotalInterest but interest increases between withdrawals', async () => {
-      await prepareForBetting();
-      await placeBet(user0, NON_OCCURING, stake0); //200
-      await placeBet(user1, OCCURING, stake1); //300
-      await placeBet(user2, OCCURING, stake2); //500
-      // total interest should be zero
-      let totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(new BN(0));
-      await letOutcomeOccur();
-      // interest should be 10% of total stake
-      let totalStake = stake0 + stake1 + stake2; //1000
-      totalInterest = await magicBet.getTotalInterest();
-      let expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
-      // loser withdraws, total interest should be unchanged
-      await magicBet.withdraw({from: user0}); //1100 - 200 = 900 left
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(expectedInterest);
-      // interest increases by 10%, total -> 990, interest = 190
-      await aToken.generate10PercentInterest(magicBet.address);
-      totalInterest = await magicBet.getTotalInterest();
-      expectedInterest = new BN(web3.utils.toWei((190).toString(), 'ether'));
-      // user1 withdraws, should get 190 * 300/800 interest which leaves 71.25 interest
-      await magicBet.withdraw({from: user1});
-      totalInterest = await magicBet.getTotalInterest();
-      expectedInterest = new BN(web3.utils.toWei((71.25).toString(), 'ether'));
-      // increase interest and final user withdraws, should be zero interest left.
-      await aToken.generate10PercentInterest(magicBet.address);
-      await magicBet.withdraw({from: user2});
-      totalInterest = await magicBet.getTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(new BN(0));
-    });
+  it('check getTotalInterest but interest increases between withdrawals', async () => {
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0); //200
+    await placeBet(user1, OCCURING, stake1); //300
+    await placeBet(user2, OCCURING, stake2); //500
+    // total interest should be zero
+    let totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+    await letOutcomeOccur();
+    // interest should be 10% of total stake
+    let totalStake = stake0 + stake1 + stake2; //1000
+    totalInterest = await magicBet.getTotalInterest();
+    let expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+    // loser withdraws, total interest should be unchanged
+    await magicBet.withdraw({from: user0}); //1100 - 200 = 900 left
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+    // interest increases by 10%, total -> 990, interest = 190
+    await aToken.generate10PercentInterest(magicBet.address);
+    totalInterest = await magicBet.getTotalInterest();
+    expectedInterest = new BN(web3.utils.toWei((190).toString(), 'ether'));
+    // user1 withdraws, should get 190 * 300/800 interest which leaves 71.25 interest
+    await magicBet.withdraw({from: user1});
+    totalInterest = await magicBet.getTotalInterest();
+    expectedInterest = new BN(web3.utils.toWei((71.25).toString(), 'ether'));
+    // increase interest and final user withdraws, should be zero interest left.
+    await aToken.generate10PercentInterest(magicBet.address);
+    await magicBet.withdraw({from: user2});
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
 
-    it('check getMaxTotalInterest', async () => {
-      await prepareForBetting();
-      await placeBet(user0, NON_OCCURING, stake0); //200
-      await placeBet(user1, OCCURING, stake1); //300
-      await placeBet(user2, OCCURING, stake2); //500
-      // increase interest and check that getMax increases with it
-      await aToken.generate10PercentInterest(magicBet.address);
-      let totalInterest = await magicBet.getTotalInterest();
-      let maxInterest = await magicBet.getMaxTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
-      // again
-      await aToken.generate10PercentInterest(magicBet.address);
-      totalInterest = await magicBet.getTotalInterest();
-      maxInterest = await magicBet.getMaxTotalInterest();
-      expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
-      // resolve, get final interest amount
-      await letOutcomeOccur();
-      let actualMaxInterest = await magicBet.getTotalInterest();
-      // withdraw, maxInterest should not reduce
-      await magicBet.withdraw({from: user1});
-      maxInterest = await magicBet.getMaxTotalInterest();
-      expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
-    });
+  it('check getMaxTotalInterest', async () => {
+    await prepareForBetting();
+    await placeBet(user0, NON_OCCURING, stake0); //200
+    await placeBet(user1, OCCURING, stake1); //300
+    await placeBet(user2, OCCURING, stake2); //500
+    // increase interest and check that getMax increases with it
+    await aToken.generate10PercentInterest(magicBet.address);
+    let totalInterest = await magicBet.getTotalInterest();
+    let maxInterest = await magicBet.getMaxTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+    // again
+    await aToken.generate10PercentInterest(magicBet.address);
+    totalInterest = await magicBet.getTotalInterest();
+    maxInterest = await magicBet.getMaxTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+    // resolve, get final interest amount
+    await letOutcomeOccur();
+    let actualMaxInterest = await magicBet.getTotalInterest();
+    // withdraw, maxInterest should not reduce
+    await magicBet.withdraw({from: user1});
+    maxInterest = await magicBet.getMaxTotalInterest();
+    expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+  });
 
   async function prepareForBetting() {
     const marketAddress = await magicBetFactory.marketAddresses.call(0);
