@@ -196,25 +196,16 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function getTotalInterest() public view returns (uint256) {
-        // console.log("totalBets is ", totalBets);
-        // console.log("betsWithdrawn is ", betsWithdrawn);
         uint256 _remainingBet = totalBets.sub(betsWithdrawn);
         uint256 _totalAdaibalances = aToken.balanceOf(address(this));
-        // console.log("_totalAdaibalances is ", _totalAdaibalances);
-        // console.log("_remainingBet is      ", _remainingBet);
         uint256 _totalInterest = _totalAdaibalances.sub(_remainingBet);
         return _totalInterest;
     }
 
     function getWinningsGivenOutcome(uint256 _outcome) public view returns (uint256) {
         Token _token = Token(tokenAddresses[_outcome]);
-        // console.log("user is: ",msg.sender);
-        // console.log("outcome is: ",_outcome);
-        // console.log("totalBetsPerOutcome is     ",totalBetsPerOutcome[_outcome]);
-        // console.log("betsWithdrawnPerOutcome is ",betsWithdrawnPerOutcome[_outcome]);
         uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
         uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
-        // console.log("_totalRemainingBetsOnOutcome is ", _totalRemainingBetsOnOutcome);
         return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
     }
 
@@ -259,8 +250,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
-            // console.log("outcome is ",i);
-            // console.log("_userBetsAllOutcomes is ",_userBetThisOutcome);
             _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
         }
         return _userBetsAllOutcomes;
