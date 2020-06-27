@@ -25,6 +25,8 @@ contract MBMarketFactory is Ownable, Pausable {
     address public mostRecentContract;
 
     event MarketCreated(address contractAddress);
+    event MarketPaused(address contractAddress);
+    event MarketDestroyed(address contractAddress);
 
     modifier createdByThisFactory(address marketAddress) {
         require(mappingOfMarkets[marketAddress], "Must've been created by the corresponding factory");
@@ -94,6 +96,7 @@ contract MBMarketFactory is Ownable, Pausable {
 
     function destroy() public onlyOwner whenPaused {
         selfdestruct(msg.sender);
+        emit MarketDestroyed(address(msg.sender));
     }
 
     function disableMarket(address payable marketAddress)
@@ -102,6 +105,7 @@ contract MBMarketFactory is Ownable, Pausable {
         createdByThisFactory(marketAddress)
         returns (bool)
     {
+        emit MarketPaused(marketAddress);
         return MBMarket(marketAddress).disableContract();
     }
 }

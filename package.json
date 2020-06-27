@@ -2,19 +2,19 @@
   "name": "magicbet-contracts",
   "version": "1.0.0",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.35",
+    "@truffle/hdwallet-provider": "^1.0.36",
     "acorn": "^7.3.1",
     "dotenv": "^8.2.0",
     "truffle-security": "^1.7.3"
   },
   "devDependencies": {
     "@codechecks/client": "^0.1.10",
-    "@nomiclabs/buidler": "^1.3.7",
+    "@nomiclabs/buidler": "^1.3.8",
     "@nomiclabs/buidler-ethers": "^1.3.4",
     "@nomiclabs/buidler-truffle5": "^1.3.4",
     "@nomiclabs/buidler-waffle": "^1.3.5",
     "@nomiclabs/buidler-web3": "^1.3.4",
-    "@openzeppelin/contracts": "^3.0.2",
+    "@openzeppelin/contracts": "^3.1.0",
     "@openzeppelin/test-helpers": "^0.5.6",
     "bn.js": "^5.1.2",
     "chai": "^4.2.0",
