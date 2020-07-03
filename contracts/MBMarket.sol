@@ -10,7 +10,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
-import './interfaces/IUniswapV2Router01.sol';
+import './interfaces/IUniswapV2Router02.sol';
 import './Token.sol';
 
 /// @title The MagicBet market instance
@@ -32,7 +32,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
     IRealitio public realitio;
-    IUniswapV2Router01 public uniswapRouter;
+    IUniswapV2Router02 public uniswapRouter;
 
     //////// Market Details ////////
     uint256 public maxInterest = 0; // for the front end
@@ -67,7 +67,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         Dai _daiAddress,
         address[3] memory _aaveAddresses,
         IRealitio _realitioAddress,
-        IUniswapV2Router01 _uniswapRouter,
+        IUniswapV2Router02 _uniswapRouter,
         string memory _eventName,
         uint256[4] memory _marketTimes,
         address _arbitrator,

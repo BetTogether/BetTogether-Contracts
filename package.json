@@ -2,7 +2,7 @@
   "name": "magicbet-contracts",
   "version": "1.0.0",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.36",
+    "@truffle/hdwallet-provider": "^1.0.37",
     "acorn": "^7.3.1",
     "dotenv": "^8.2.0",
     "truffle-security": "^1.7.3"
@@ -21,13 +21,13 @@
     "chai-bn": "^0.2.1",
     "eth-gas-reporter": "^0.2.17",
     "ethereum-waffle": "^2.5.1",
-    "ethers": "^4.0.47",
+    "ethers": "^5.0.3",
     "husky": "^4.2.5",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "1.0.0-alpha.54",
     "pretty-quick": "^2.0.1",
     "solc": "^0.6.10",
-    "truffle": "^5.1.31"
+    "truffle": "^5.1.33"
   },
   "husky": {
     "hooks": {
