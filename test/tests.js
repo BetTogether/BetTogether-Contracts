@@ -87,10 +87,12 @@ contract('MagicBetTests', (accounts) => {
       question,
       outcomeNames
     );
+    const marketAddress = await magicBetFactory.marketAddresses.call(0);
+    magicBet = await MagicBet.at(marketAddress);
   }
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
 
     await placeBet(user1, NON_OCCURING, stake1);
@@ -128,8 +130,6 @@ contract('MagicBetTests', (accounts) => {
   });
 
   it('check market states transition', async () => {
-    const marketAddress = await magicBetFactory.marketAddresses.call(0);
-    magicBet = await MagicBet.at(marketAddress);
     const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
     // opening date in the future, so revert;  no need to increment state cos automatic within
     // the placeBet function via the checkState modifier
@@ -156,7 +156,7 @@ contract('MagicBetTests', (accounts) => {
     const totalLosingStake = stake0 + stake1 + stake2;
     const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
     const totalWinningStake = stake3 + stake4;
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
 
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user0, NON_OCCURING, stake1);
@@ -180,7 +180,7 @@ contract('MagicBetTests', (accounts) => {
     // = users have a choice of 0 and 1, but 2 wins
     const totalStake = stake0 + stake1;
     const totalWinningStake = stake1;
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
 
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, OCCURING, stake1);
@@ -197,7 +197,7 @@ contract('MagicBetTests', (accounts) => {
     const totalStake = stake0;
     const totalWinningStake = 0;
     const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await letOutcomeOccur();
     let totalInterest = await magicBet.getTotalInterest();
@@ -210,13 +210,13 @@ contract('MagicBetTests', (accounts) => {
   });
 
   it("can't determine winner if oracle has not yet resolved", async () => {
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await expectRevert(magicBet.determineWinner(), errors.oracleNotFinalised);
   });
 
   it('check getTotalInterest', async () => {
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, OCCURING, stake1);
     await placeBet(user2, OCCURING, stake2);
@@ -245,7 +245,7 @@ contract('MagicBetTests', (accounts) => {
   });
 
   it('check getTotalInterest but interest increases between withdrawals', async () => {
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0); //200
     await placeBet(user1, OCCURING, stake1); //300
     await placeBet(user2, OCCURING, stake2); //500
@@ -278,7 +278,7 @@ contract('MagicBetTests', (accounts) => {
   });
 
   it('check getMaxTotalInterest', async () => {
-    await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0); //200
     await placeBet(user1, OCCURING, stake1); //300
     await placeBet(user2, OCCURING, stake2); //500
@@ -301,15 +301,39 @@ contract('MagicBetTests', (accounts) => {
     expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
   });
 
-  async function prepareForBetting() {
-    const marketAddress = await magicBetFactory.marketAddresses.call(0);
+  it('event with three outcomes', async () => {
+    await createMarket(
+      'Who will win the 2020 US General Election',
+      'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden", "Kanye West"␟news-politics␟en_US',
+      ['Trump', 'Biden', 'West']
+    );
+    const marketAddress = await magicBetFactory.marketAddresses.call(1);
     magicBet = await MagicBet.at(marketAddress);
-    await time.increase(time.duration.seconds(100));
-  }
+    const totalStake = stake0 + stake1 + stake2;
+    const donaldTrump = 0;
+    const joeBiden = 1;
+    const kanyeWest = 2;
 
-  async function letOutcomeOccur() {
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, donaldTrump, stake0);
+    await placeBet(user1, joeBiden, stake1);
+    await placeBet(user2, kanyeWest, stake2);
+
+    await letOutcomeOccur(kanyeWest);
+
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, stake2, 3);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, stake2, 3);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake2, 0, totalStake, stake2, 3);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+  });
+
+  async function letOutcomeOccur(eventOutcome = OCCURING) {
     await aToken.generate10PercentInterest(magicBet.address);
-    await realitio.setResult(OCCURING);
+    await realitio.setResult(eventOutcome);
     await magicBet.determineWinner();
     await time.increase(time.duration.seconds(100));
   }
@@ -334,7 +358,8 @@ contract('MagicBetTests', (accounts) => {
     _stakeOnWinning,
     _stakeOnLosing,
     _totalStake,
-    _totalWinningStake
+    _totalWinningStake,
+    _outcomeCount = 2
   ) {
     await magicBet.withdraw({
       from: _user,
@@ -342,7 +367,7 @@ contract('MagicBetTests', (accounts) => {
     const actualBalance = await dai.balanceOf(_user);
     let expectedBalance = _stakeOnWinning + _stakeOnLosing;
     const outcome = await magicBet.winningOutcome();
-    const invalidOutcome = outcome != OCCURING && outcome != NON_OCCURING;
+    const invalidOutcome = outcome < 0 || outcome >= _outcomeCount;
 
     if (_stakeOnWinning > 0 || _totalWinningStake == 0 || invalidOutcome) {
       const totalInterest = _totalStake * 0.1;
