@@ -53,6 +53,14 @@ contract('MagicBetTests', (accounts) => {
   // user8 = accounts[8];
 
   beforeEach(async () => {
+    await createMarket(
+      'Who will win the 2020 US General Election',
+      'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US',
+      ['Trump', 'Biden']
+    );
+  });
+
+  async function createMarket(eventName, question, outcomeNames) {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
@@ -66,12 +74,9 @@ contract('MagicBetTests', (accounts) => {
       uniswap.address
     );
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
-    const eventName = 'Who will win the 2020 US General Election';
     const marketOpeningTime = (await time.latest()).toNumber() + 100;
     const marketLockingTime = marketOpeningTime + 100;
     const marketResolutionTime = marketLockingTime + 100;
-    const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
-    const outcomeNamesArray = ['Trump', 'Biden'];
     await magicBetFactory.createMarket(
       eventName,
       marketOpeningTime,
@@ -80,9 +85,9 @@ contract('MagicBetTests', (accounts) => {
       30,
       arbitrator,
       question,
-      outcomeNamesArray
+      outcomeNames
     );
-  });
+  }
 
   it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
     await prepareForBetting();
