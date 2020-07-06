@@ -53,14 +53,6 @@ contract('MagicBetTests', (accounts) => {
   // user8 = accounts[8];
 
   beforeEach(async () => {
-    await createMarket(
-      'Who will win the 2020 US General Election',
-      'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US',
-      ['Trump', 'Biden']
-    );
-  });
-
-  async function createMarket(eventName, question, outcomeNames) {
     dai = await DaiMockup.new();
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
@@ -73,6 +65,14 @@ contract('MagicBetTests', (accounts) => {
       realitio.address,
       uniswap.address
     );
+    await createMarket(
+      'Who will win the 2020 US General Election',
+      'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US',
+      ['Trump', 'Biden']
+    );
+  });
+
+  async function createMarket(eventName, question, outcomeNames) {
     const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
     const marketOpeningTime = (await time.latest()).toNumber() + 100;
     const marketLockingTime = marketOpeningTime + 100;
