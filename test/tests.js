@@ -123,7 +123,6 @@ contract('MagicBetTests', (accounts) => {
   });
 
   it('check market states transition', async () => {
-    await resetFutureTimestamps();
     const marketAddress = await magicBetFactory.marketAddresses.call(0);
     magicBet = await MagicBet.at(marketAddress);
     const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
@@ -323,40 +322,6 @@ contract('MagicBetTests', (accounts) => {
     await magicBet.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });
-  }
-
-  async function resetFutureTimestamps() {
-    dai = await DaiMockup.new();
-    aToken = await aTokenMockup.new(dai.address);
-    realitio = await RealitioMockup.new();
-    uniswap = await UniswapMockup.new();
-    magicBetFactory = await MagicBetFactory.new(
-      dai.address,
-      aToken.address,
-      aToken.address,
-      aToken.address,
-      realitio.address,
-      uniswap.address
-    );
-    const arbitrator = '0x34A971cA2fd6DA2Ce2969D716dF922F17aAA1dB0';
-    const eventName = 'Who will win the 2020 US General Election';
-    var marketOpeningTime = await time.latest();
-    marketOpeningTime = marketOpeningTime.toNumber() + 100;
-    var marketLockingTime = marketOpeningTime + 100;
-    var marketResolutionTime = marketLockingTime + 100;
-    const question = 'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US';
-    const outcomeNamesArray = ['Trump', 'Biden'];
-
-    await magicBetFactory.createMarket(
-      eventName,
-      marketOpeningTime,
-      marketLockingTime,
-      marketResolutionTime,
-      30,
-      arbitrator,
-      question,
-      outcomeNamesArray
-    );
   }
 
   async function withdrawAndReturnActualAndExpectedBalance(
