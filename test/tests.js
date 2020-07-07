@@ -8,10 +8,12 @@ const {expect} = chai;
 
 const {expectRevert, time} = require('@openzeppelin/test-helpers');
 const {errors} = require('./helpers');
+const {assert} = require('chai');
 
 const aTokenMockup = artifacts.require('aTokenMockup');
 const MagicBet = artifacts.require('MBMarket');
 const MagicBetFactory = artifacts.require('MBMarketFactory');
+const Token = artifacts.require('Token');
 const DaiMockup = artifacts.require('DaiMockup');
 const RealitioMockup = artifacts.require('RealitioMockup.sol');
 const UniswapMockup = artifacts.require('UniswapMockup.sol');
@@ -35,7 +37,7 @@ let user0;
 let user1;
 let user2;
 let user3;
-// let user4;
+let user4;
 // let user5;
 // let user6;
 // let user7;
@@ -46,7 +48,7 @@ contract('MagicBetTests', (accounts) => {
   user1 = accounts[1];
   user2 = accounts[2];
   user3 = accounts[3];
-  // user4 = accounts[4];
+  user4 = accounts[4];
   // user5 = accounts[5];
   // user6 = accounts[6];
   // user7 = accounts[7];
@@ -91,7 +93,7 @@ contract('MagicBetTests', (accounts) => {
     magicBet = await MagicBet.at(marketAddress);
   }
 
-  it('betting leads to winners receiving both stake and interest, losers receiving their stake back', async () => {
+  it('betting leads to winners receiving both stake and interest, losers receiving their stake back; check ERC20s are minted and then destroyed; check cant withdraw twice', async () => {
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
 
@@ -101,6 +103,24 @@ contract('MagicBetTests', (accounts) => {
     await placeBet(user3, OCCURING, stake4);
     const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
     const totalWinningStake = stake3 + stake4;
+
+    // check that ERC20s are minted
+    await initialiseERC20s();
+    let tokenBalance = await token1.balanceOf(user0);
+    let expectedBalance = new BN(web3.utils.toWei(stake0.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user1);
+    expectedBalance = new BN(web3.utils.toWei(stake1.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user2);
+    expectedBalance = new BN(web3.utils.toWei(stake2.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user2);
+    expectedBalance = new BN(web3.utils.toWei(stake3.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user3);
+    expectedBalance = new BN(web3.utils.toWei(stake4.toString(), 'ether'));
+    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
 
     await letOutcomeOccur();
 
@@ -127,6 +147,44 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
     const betsWithdrawn = await magicBet.betsWithdrawn.call();
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+
+    // check that cant withdraw twice
+    let user = user0;
+    await dai.resetBalance(user);
+    await magicBet.withdraw({from: user});
+    let userBalance = await dai.balanceOf(user);
+    assert.equal(userBalance, 0);
+    user = user1;
+    await dai.resetBalance(user);
+    await magicBet.withdraw({from: user});
+    userBalance = await dai.balanceOf(user);
+    assert.equal(userBalance, 0);
+    user = user2;
+    await dai.resetBalance(user);
+    await magicBet.withdraw({from: user});
+    userBalance = await dai.balanceOf(user);
+    assert.equal(userBalance, 0);
+    user = user3;
+    await dai.resetBalance(user);
+    await magicBet.withdraw({from: user});
+    userBalance = await dai.balanceOf(user);
+    assert.equal(userBalance, 0);
+
+    // check that nothing is withdrawn if you didnt bet
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user4, 0, 0, totalStake, totalWinningStake);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+
+    // check that ERC20s have been burnt
+    tokenBalance = await token1.balanceOf(user0);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user1);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token1.balanceOf(user2);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user2);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    tokenBalance = await token2.balanceOf(user3);
+    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
   });
 
   it('check market states transition', async () => {
@@ -207,6 +265,27 @@ contract('MagicBetTests', (accounts) => {
     expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
     totalInterest = await magicBet.getTotalInterest();
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
+
+  it('payout all stakes plus interest after 1 month in case of Oracle never resolves', async () => {
+    // = users have a choice of 0 and 1, but 2 wins
+    const totalStake = stake0 + stake1;
+    const totalWinningStake = stake1;
+    // await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, 0, stake0); // 200
+    await placeBet(user1, 1, stake1); // 300
+    await aToken.generate10PercentInterest(magicBet.address);
+
+    // havnt waited a month so this should fail:
+    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState);
+
+    // pass time by a month and try again
+    await time.increase(time.duration.weeks(5));
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
   });
 
   it("can't determine winner if oracle has not yet resolved", async () => {
@@ -301,6 +380,33 @@ contract('MagicBetTests', (accounts) => {
     expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
   });
 
+  it('create ten markets, do simple invalid outcome check on final one', async () => {
+    let i;
+    for (i = 0; i < 10; i++) {
+      await createMarket(
+        'Who will win the 2020 US General Election',
+        'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden", "Kanye West"␟news-politics␟en_US',
+        ['Trump', 'Biden', 'West']
+      );
+    }
+
+    const marketAddress = await magicBetFactory.marketAddresses.call(10);
+    magicBet = await MagicBet.at(marketAddress);
+    const totalStake = stake0;
+    const totalWinningStake = 0;
+    const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, NON_OCCURING, stake0);
+    await letOutcomeOccur();
+    let totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
+  });
+
   it('event with three outcomes', async () => {
     await createMarket(
       'Who will win the 2020 US General Election',
@@ -351,6 +457,14 @@ contract('MagicBetTests', (accounts) => {
     await magicBet.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
       from: user,
     });
+  }
+
+  async function initialiseERC20s() {
+    let tokenAddresses = await magicBet.getTokenAddresses.call();
+    let tokenAddress1 = tokenAddresses[0];
+    let tokenAddress2 = tokenAddresses[1];
+    token1 = await Token.at(tokenAddress1);
+    token2 = await Token.at(tokenAddress2);
   }
 
   async function withdrawAndReturnActualAndExpectedBalance(
