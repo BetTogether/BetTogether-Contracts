@@ -267,6 +267,27 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
   });
 
+  it('payout all stakes plus interest after 1 month in case of Oracle never resolves', async () => {
+    // = users have a choice of 0 and 1, but 2 wins
+    const totalStake = stake0 + stake1;
+    const totalWinningStake = stake1;
+    // await prepareForBetting();
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, 0, stake0); // 200
+    await placeBet(user1, 1, stake1); // 300
+    await aToken.generate10PercentInterest(magicBet.address);
+
+    // havnt waited a month so this should fail:
+    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState);
+
+    // pass time by a month and try again
+    await time.increase(time.duration.weeks(5));
+    let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+  });
+
   it("can't determine winner if oracle has not yet resolved", async () => {
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
@@ -357,6 +378,33 @@ contract('MagicBetTests', (accounts) => {
     await magicBet.withdraw({from: user1});
     maxInterest = await magicBet.getMaxTotalInterest();
     expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+  });
+
+  it('create ten markets, do simple invalid outcome check on final one', async () => {
+    let i;
+    for (i = 0; i < 10; i++) {
+      await createMarket(
+        'Who will win the 2020 US General Election',
+        'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden", "Kanye West"␟news-politics␟en_US',
+        ['Trump', 'Biden', 'West']
+      );
+    }
+
+    const marketAddress = await magicBetFactory.marketAddresses.call(10);
+    magicBet = await MagicBet.at(marketAddress);
+    const totalStake = stake0;
+    const totalWinningStake = 0;
+    const expectedInterest = new BN(web3.utils.toWei((totalStake / 10).toString(), 'ether'));
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, NON_OCCURING, stake0);
+    await letOutcomeOccur();
+    let totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(expectedInterest);
+
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
+    expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
+    totalInterest = await magicBet.getTotalInterest();
+    expect(totalInterest).to.be.bignumber.equal(new BN(0));
   });
 
   it('event with three outcomes', async () => {
