@@ -8,7 +8,7 @@ import './MBMarket.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
-import './interfaces/IUniswapV2Router01.sol';
+import './interfaces/IUniswapV2Router02.sol';
 
 /// @title The MagicBet factory
 /// @notice This contract allows for generating new market instances
@@ -18,7 +18,7 @@ contract MBMarketFactory is Ownable, Pausable {
     IAaveLendingPool public aaveLendingPool;
     IAaveLendingPoolCore public aaveLendingPoolCore;
     IRealitio public realitio;
-    IUniswapV2Router01 public uniswapRouter;
+    IUniswapV2Router02 public uniswapRouter;
 
     mapping(address => bool) public mappingOfMarkets;
     address[] public marketAddresses;
@@ -37,7 +37,7 @@ contract MBMarketFactory is Ownable, Pausable {
         IAaveLendingPool _aaveLpAddress,
         IAaveLendingPoolCore _aaveLpcoreAddress,
         IRealitio _realitioAddress,
-        IUniswapV2Router01 _uniswapRouter
+        IUniswapV2Router02 _uniswapRouter
     ) public {
         dai = _daiAddress;
         aToken = _aTokenAddress;
