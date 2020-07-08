@@ -13,8 +13,8 @@
     <a href="https://docs.openzeppelin.com/">
     <img src="https://img.shields.io/badge/built%20with-OpenZeppelin-3677FF?style=flat-square" alt="OpenZeppelin" />
     </a>
-        <a href="https://solidity.readthedocs.io/en/v0.6.7/index.html">
-    <img src="https://img.shields.io/badge/solc-0.6.7-brown?style=flat-square" alt="Solidity" />
+        <a href="https://solidity.readthedocs.io/en/v0.6.10/index.html">
+    <img src="https://img.shields.io/badge/solc-0.6.10-brown?style=flat-square" alt="Solidity" />
     </a>
 </p>
 
