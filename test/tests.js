@@ -385,8 +385,8 @@ contract('MagicBetTests', (accounts) => {
     for (i = 0; i < 10; i++) {
       await createMarket(
         'Who will win the 2020 US General Election',
-        'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden", "Kanye West"␟news-politics␟en_US',
-        ['Trump', 'Biden', 'West']
+        'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US',
+        ['Trump', 'Biden']
       );
     }
 
