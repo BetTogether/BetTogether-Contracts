@@ -86,16 +86,12 @@ contract('MagicBetTests', (accounts) => {
 
     // check that ERC20s are minted
     await initialiseERC20s();
-    let tokenBalance = await token1.balanceOf(user0);
-    expect(asWeiBN(stake0)).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token1.balanceOf(user1);
-    expect(asWeiBN(stake1)).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token1.balanceOf(user2);
-    expect(asWeiBN(stake2)).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token2.balanceOf(user2);
-    expect(asWeiBN(stake3)).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token2.balanceOf(user3);
-    expect(asWeiBN(stake4)).to.be.bignumber.equal(tokenBalance);
+
+    expect(asWeiBN(stake0)).to.be.bignumber.equal(await token1.balanceOf(user0));
+    expect(asWeiBN(stake1)).to.be.bignumber.equal(await token1.balanceOf(user1));
+    expect(asWeiBN(stake2)).to.be.bignumber.equal(await token1.balanceOf(user2));
+    expect(asWeiBN(stake3)).to.be.bignumber.equal(await token2.balanceOf(user2));
+    expect(asWeiBN(stake4)).to.be.bignumber.equal(await token2.balanceOf(user3));
 
     await letOutcomeOccur();
 
@@ -117,21 +113,15 @@ contract('MagicBetTests', (accounts) => {
     userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
-    // check totalBets and betsWithdrawn
-    const totalBets = await magicBet.totalBets.call();
-    assert.equal(totalBets, asWei(totalStake));
-    const betsWithdrawn = await magicBet.betsWithdrawn.call();
-    assert.equal(betsWithdrawn, asWei(totalStake));
+    // check total bets and withdrawn bets
+    assert.equal(await magicBet.totalBets.call(), asWei(totalStake));
+    assert.equal(await magicBet.betsWithdrawn.call(), asWei(totalStake));
 
     // check that cant withdraw twice
-    let userBalance = await resetAndWithdrawBalance(user0);
-    assert.equal(userBalance, 0);
-    userBalance = await resetAndWithdrawBalance(user1);
-    assert.equal(userBalance, 0);
-    userBalance = await resetAndWithdrawBalance(user2);
-    assert.equal(userBalance, 0);
-    userBalance = await resetAndWithdrawBalance(user3);
-    assert.equal(userBalance, 0);
+    assert.equal(await resetAndWithdrawBalance(user0), 0);
+    assert.equal(await resetAndWithdrawBalance(user1), 0);
+    assert.equal(await resetAndWithdrawBalance(user2), 0);
+    assert.equal(await resetAndWithdrawBalance(user3), 0);
 
     // check that nothing is withdrawn if you didnt bet
     userResult = await withdrawAndReturnActualAndExpectedBalance(user4, 0, 0, totalStake, totalWinningStake);
@@ -139,16 +129,11 @@ contract('MagicBetTests', (accounts) => {
 
     // check that ERC20s have been burnt
     const zero = new BN(0);
-    tokenBalance = await token1.balanceOf(user0);
-    expect(zero).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token1.balanceOf(user1);
-    expect(zero).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token1.balanceOf(user2);
-    expect(zero).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token2.balanceOf(user2);
-    expect(zero).to.be.bignumber.equal(tokenBalance);
-    tokenBalance = await token2.balanceOf(user3);
-    expect(zero).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(await token1.balanceOf(user0));
+    expect(zero).to.be.bignumber.equal(await token1.balanceOf(user1));
+    expect(zero).to.be.bignumber.equal(await token1.balanceOf(user2));
+    expect(zero).to.be.bignumber.equal(await token2.balanceOf(user2));
+    expect(zero).to.be.bignumber.equal(await token2.balanceOf(user3));
   });
 
   async function resetAndWithdrawBalance(user) {
@@ -276,8 +261,8 @@ contract('MagicBetTests', (accounts) => {
     await letOutcomeOccur();
     // interest should be 10% of total stake
     const totalStake = stake0 + stake1 + stake2;
-    totalInterest = await magicBet.getTotalInterest();
     let expectedInterest = asWeiBN(totalStake / 10);
+    totalInterest = await magicBet.getTotalInterest();
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
     // loser withdraws, total interest should be unchanged
     await magicBet.withdraw({from: user0});
@@ -336,19 +321,19 @@ contract('MagicBetTests', (accounts) => {
     await aToken.generate10PercentInterest(magicBet.address);
     let totalInterest = await magicBet.getTotalInterest();
     let maxInterest = await magicBet.getMaxTotalInterest();
-    expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+    expect(totalInterest).to.be.bignumber.equal(maxInterest);
     // again
     await aToken.generate10PercentInterest(magicBet.address);
     totalInterest = await magicBet.getTotalInterest();
     maxInterest = await magicBet.getMaxTotalInterest();
-    expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+    expect(totalInterest).to.be.bignumber.equal(maxInterest);
     // resolve, get final interest amount
     await letOutcomeOccur();
     const actualMaxInterest = await magicBet.getTotalInterest();
     // withdraw, maxInterest should not reduce
     await magicBet.withdraw({from: user1});
     maxInterest = await magicBet.getMaxTotalInterest();
-    expect(actualMaxInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
+    expect(actualMaxInterest).to.be.bignumber.equal(maxInterest);
   });
 
   it('create ten markets, do simple invalid outcome check on final one', async () => {
