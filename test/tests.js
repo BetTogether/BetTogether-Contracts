@@ -231,8 +231,8 @@ contract('MagicBetTests', (accounts) => {
 
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, OCCURING, stake1);
-
-    await letOutcomeDoesntExistOccur();
+    const invalidOutcome = OCCURING + 1;
+    await letOutcomeOccur(invalidOutcome);
 
     let userResult = await withdrawAndReturnActualAndExpectedBalance(user0, 0, stake0, totalStake, totalWinningStake);
     expect(userResult.actualBalance).to.be.bignumber.equal(userResult.expectedBalance);
@@ -433,14 +433,6 @@ contract('MagicBetTests', (accounts) => {
     await time.increase(time.duration.seconds(100));
   }
 
-  // this also works for invalid outcome i.e. 2^256-1
-  async function letOutcomeDoesntExistOccur() {
-    await aToken.generate10PercentInterest(magicBet.address);
-    await realitio.setResult(OCCURING + 1);
-    await magicBet.determineWinner();
-    await time.increase(time.duration.seconds(100));
-  }
-
   async function placeBet(user, outcome, stake) {
     await dai.mint(asWei(stake), {from: user});
     await magicBet.placeBet(outcome, asWei(stake), {
@@ -449,11 +441,9 @@ contract('MagicBetTests', (accounts) => {
   }
 
   async function initialiseERC20s() {
-    let tokenAddresses = await magicBet.getTokenAddresses.call();
-    let tokenAddress1 = tokenAddresses[0];
-    let tokenAddress2 = tokenAddresses[1];
-    token1 = await Token.at(tokenAddress1);
-    token2 = await Token.at(tokenAddress2);
+    const tokenAddresses = await magicBet.getTokenAddresses.call();
+    token1 = await Token.at(tokenAddresses[0]);
+    token2 = await Token.at(tokenAddresses[1]);
   }
 
   async function withdrawAndReturnActualAndExpectedBalance(
