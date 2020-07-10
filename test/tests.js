@@ -148,7 +148,7 @@ contract('MagicBetTests', (accounts) => {
     // opening date in the future, so revert;  no need to increment state cos automatic within
     // the placeBet function via the checkState modifier
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WAITING);
-    await expect(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState).to.be.reverted;
+    await expect(placeBet(user0, NON_OCCURING, stake0)).to.be.revertedWith(errors.incorrectState);
     // progress time so opening is in the past, should not revert
     await time.increase(time.duration.seconds(150));
     await placeBet(user0, NON_OCCURING, stake0);
