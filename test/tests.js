@@ -105,20 +105,15 @@ contract('MagicBetTests', (accounts) => {
     // check that ERC20s are minted
     await initialiseERC20s();
     let tokenBalance = await token1.balanceOf(user0);
-    let expectedBalance = asWei(stake0);
-    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    expect(asWeiBN(stake0)).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token1.balanceOf(user1);
-    expectedBalance = asWei(stake1);
-    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    expect(asWeiBN(stake1)).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token1.balanceOf(user2);
-    expectedBalance = asWei(stake2);
-    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    expect(asWeiBN(stake2)).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token2.balanceOf(user2);
-    expectedBalance = asWei(stake3);
-    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    expect(asWeiBN(stake3)).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token2.balanceOf(user3);
-    expectedBalance = asWei(stake4);
-    expect(expectedBalance).to.be.bignumber.equal(tokenBalance);
+    expect(asWeiBN(stake4)).to.be.bignumber.equal(tokenBalance);
 
     await letOutcomeOccur();
 
@@ -142,9 +137,9 @@ contract('MagicBetTests', (accounts) => {
 
     // check totalBets and betsWithdrawn
     const totalBets = await magicBet.totalBets.call();
-    assert.equal(totalBets, web3.utils.toWei(totalStake.toString(), 'ether'));
+    assert.equal(totalBets, asWei(totalStake));
     const betsWithdrawn = await magicBet.betsWithdrawn.call();
-    assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
+    assert.equal(betsWithdrawn, asWei(totalStake));
 
     // check that cant withdraw twice
     let userBalance = await resetAndWithdrawBalance(user0);
@@ -248,7 +243,7 @@ contract('MagicBetTests', (accounts) => {
   it('payout stake plus interest in case of no winner', async () => {
     const totalStake = stake0;
     const totalWinningStake = 0;
-    const expectedInterest = asWei(totalStake / 10);
+    const expectedInterest = asWeiBN(totalStake / 10);
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await letOutcomeOccur();
@@ -300,7 +295,7 @@ contract('MagicBetTests', (accounts) => {
     // interest should be 10% of total stake
     let totalStake = stake0 + stake1 + stake2;
     totalInterest = await magicBet.getTotalInterest();
-    let expectedInterest = asWei(totalStake / 10);
+    let expectedInterest = asWeiBN(totalStake / 10);
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
     // loser withdraws, total interest should be unchanged
     await magicBet.withdraw({from: user0});
@@ -308,7 +303,7 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
     // one of the winners withdraws, should be drop in interest
     await magicBet.withdraw({from: user1});
-    expectedInterest = asWei(((totalStake / 10) * stake2) / (stake1 + stake2));
+    expectedInterest = asWeiBN(((totalStake / 10) * stake2) / (stake1 + stake2));
     totalInterest = await magicBet.getTotalInterest();
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
     //final withdrawal, should be no interest left
@@ -329,7 +324,7 @@ contract('MagicBetTests', (accounts) => {
     // interest should be 10% of total stake
     let totalStake = stake0 + stake1 + stake2; //1000
     totalInterest = await magicBet.getTotalInterest();
-    let expectedInterest = asWei(totalStake / 10);
+    let expectedInterest = asWeiBN(totalStake / 10);
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
     // loser withdraws, total interest should be unchanged
     await magicBet.withdraw({from: user0}); //1100 - 200 = 900 left
@@ -338,11 +333,11 @@ contract('MagicBetTests', (accounts) => {
     // interest increases by 10%, total -> 990, interest = 190
     await aToken.generate10PercentInterest(magicBet.address);
     totalInterest = await magicBet.getTotalInterest();
-    expectedInterest = asWei(190);
+    expectedInterest = asWeiBN(190);
     // user1 withdraws, should get 190 * 300/800 interest which leaves 71.25 interest
     await magicBet.withdraw({from: user1});
     totalInterest = await magicBet.getTotalInterest();
-    expectedInterest = asWei(71.25);
+    expectedInterest = asWeiBN(71.25);
     // increase interest and final user withdraws, should be zero interest left.
     await aToken.generate10PercentInterest(magicBet.address);
     await magicBet.withdraw({from: user2});
@@ -388,7 +383,7 @@ contract('MagicBetTests', (accounts) => {
     magicBet = await MagicBet.at(marketAddress);
     const totalStake = stake0;
     const totalWinningStake = 0;
-    const expectedInterest = asWei(totalStake / 10);
+    const expectedInterest = asWeiBN(totalStake / 10);
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await letOutcomeOccur();
@@ -447,8 +442,8 @@ contract('MagicBetTests', (accounts) => {
   }
 
   async function placeBet(user, outcome, stake) {
-    await dai.mint(web3.utils.toWei(stake.toString(), 'ether'), {from: user});
-    await magicBet.placeBet(outcome, web3.utils.toWei(stake.toString(), 'ether'), {
+    await dai.mint(asWei(stake), {from: user});
+    await magicBet.placeBet(outcome, asWei(stake), {
       from: user,
     });
   }
@@ -489,11 +484,15 @@ contract('MagicBetTests', (accounts) => {
     }
     return {
       actualBalance: actualBalance.toString(),
-      expectedBalance: web3.utils.toWei(expectedBalance.toString(), 'ether').toString(),
+      expectedBalance: asWei(expectedBalance).toString(),
     };
   }
 
+  function asWeiBN(amount) {
+    return new BN(asWei(amount));
+  }
+
   function asWei(amount) {
-    return new BN(web3.utils.toWei(amount.toString(), 'ether'));
+    return web3.utils.toWei(amount.toString(), 'ether');
   }
 });
