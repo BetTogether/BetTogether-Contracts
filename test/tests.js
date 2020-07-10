@@ -5,7 +5,7 @@ chai.use(require('chai-bn')(BN));
 
 const {expect} = chai;
 
-const {expectRevert, time} = require('@openzeppelin/test-helpers');
+const {time} = require('@openzeppelin/test-helpers');
 const {errors} = require('./helpers');
 const {assert} = require('chai');
 
@@ -181,7 +181,7 @@ contract('MagicBetTests', (accounts) => {
     // opening date in the future, so revert;  no need to increment state cos automatic within
     // the placeBet function via the checkState modifier
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WAITING);
-    await expectRevert(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState);
+    await expect(placeBet(user0, NON_OCCURING, stake0), errors.incorrectState).to.be.reverted;
     // progress time so opening is in the past, should not revert
     await time.increase(time.duration.seconds(150));
     await placeBet(user0, NON_OCCURING, stake0);
@@ -190,13 +190,13 @@ contract('MagicBetTests', (accounts) => {
     await time.increase(time.duration.seconds(100));
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.LOCKED);
     // withdraw fail; too early
-    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState); // too early
+    await expect(magicBet.withdraw({from: user0}), errors.incorrectState).to.be.reverted; // too early
     // determine winner then end
     await realitio.setResult(OCCURING);
     await magicBet.determineWinner();
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
     await magicBet.withdraw({from: user0}); // should succeed now
-    await expectRevert(placeBet(user0, OCCURING, stake1), errors.incorrectState);
+    await expect(placeBet(user0, OCCURING, stake1), errors.incorrectState).to.be.reverted;
   });
 
   it('one user betting multiple times receives all stake plus total interest', async () => {
@@ -267,7 +267,7 @@ contract('MagicBetTests', (accounts) => {
     await aToken.generate10PercentInterest(magicBet.address);
 
     // havnt waited a month so this should fail:
-    await expectRevert(magicBet.withdraw({from: user0}), errors.incorrectState);
+    await expect(magicBet.withdraw({from: user0}), errors.incorrectState).to.be.reverted;
 
     // pass time by a month and try again
     await time.increase(time.duration.weeks(5));
@@ -280,7 +280,7 @@ contract('MagicBetTests', (accounts) => {
   it("can't determine winner if oracle has not yet resolved", async () => {
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
-    await expectRevert(magicBet.determineWinner(), errors.oracleNotFinalised);
+    await expect(magicBet.determineWinner(), errors.oracleNotFinalised).to.be.reverted;
   });
 
   it('check getTotalInterest', async () => {
