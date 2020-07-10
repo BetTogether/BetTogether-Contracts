@@ -157,13 +157,13 @@ contract('MagicBetTests', (accounts) => {
     await time.increase(time.duration.seconds(100));
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.LOCKED);
     // withdraw fail; too early
-    await expect(magicBet.withdraw({from: user0}), errors.incorrectState).to.be.reverted; // too early
+    await expect(magicBet.withdraw({from: user0})).to.be.revertedWith(errors.incorrectState); // too early
     // determine winner then end
     await realitio.setResult(OCCURING);
     await magicBet.determineWinner();
     expect((await magicBet.getCurrentState()).toNumber()).to.equal(marketStates.WITHDRAW);
     await magicBet.withdraw({from: user0}); // should succeed now
-    await expect(placeBet(user0, OCCURING, stake1), errors.incorrectState).to.be.reverted;
+    await expect(placeBet(user0, OCCURING, stake1)).to.be.revertedWith(errors.incorrectState);
   });
 
   it('one user betting multiple times receives all stake plus total interest', async () => {
@@ -234,7 +234,7 @@ contract('MagicBetTests', (accounts) => {
     await aToken.generate10PercentInterest(magicBet.address);
 
     // havnt waited a month so this should fail:
-    await expect(magicBet.withdraw({from: user0}), errors.incorrectState).to.be.reverted;
+    await expect(magicBet.withdraw({from: user0})).to.be.revertedWith(errors.incorrectState);
 
     // pass time by a month and try again
     await time.increase(time.duration.weeks(5));
@@ -247,7 +247,7 @@ contract('MagicBetTests', (accounts) => {
   it("can't determine winner if oracle has not yet resolved", async () => {
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
-    await expect(magicBet.determineWinner(), errors.oracleNotFinalised).to.be.reverted;
+    await expect(magicBet.determineWinner()).to.be.revertedWith(errors.oracleNotFinalised);
   });
 
   it('check getTotalInterest', async () => {
