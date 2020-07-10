@@ -35,7 +35,7 @@
     }
   },
   "scripts": {
-    "test": "bash ./scripts/run_tests.sh",
+    "test": "BUIDLER=true bash ./scripts/run_tests.sh",
     "prettier": "prettier --write '**/*.{js,sol}'",
     "pretty-quick": "pretty-quick"
   }
