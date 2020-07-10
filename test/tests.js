@@ -26,21 +26,7 @@ const stake2 = 500;
 const stake3 = 100;
 const stake4 = 400;
 
-let aToken;
-let dai;
-let magicBet;
-let magicBetFactory;
-let uniswap;
-let realitio;
-let user0;
-let user1;
-let user2;
-let user3;
-let user4;
-// let user5;
-// let user6;
-// let user7;
-// let user8;
+let aToken, token1, token2, dai, magicBet, magicBetFactory, uniswap, realitio, user0, user1, user2, user3, user4;
 
 contract('MagicBetTests', (accounts) => {
   user0 = accounts[0];
@@ -48,10 +34,6 @@ contract('MagicBetTests', (accounts) => {
   user2 = accounts[2];
   user3 = accounts[3];
   user4 = accounts[4];
-  // user5 = accounts[5];
-  // user6 = accounts[6];
-  // user7 = accounts[7];
-  // user8 = accounts[8];
 
   beforeEach(async () => {
     dai = await DaiMockup.new();
@@ -293,7 +275,7 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
     await letOutcomeOccur();
     // interest should be 10% of total stake
-    let totalStake = stake0 + stake1 + stake2;
+    const totalStake = stake0 + stake1 + stake2;
     totalInterest = await magicBet.getTotalInterest();
     let expectedInterest = asWeiBN(totalStake / 10);
     expect(totalInterest).to.be.bignumber.equal(expectedInterest);
@@ -362,7 +344,7 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(maxInterest).to.be.bignumber;
     // resolve, get final interest amount
     await letOutcomeOccur();
-    let actualMaxInterest = await magicBet.getTotalInterest();
+    const actualMaxInterest = await magicBet.getTotalInterest();
     // withdraw, maxInterest should not reduce
     await magicBet.withdraw({from: user1});
     maxInterest = await magicBet.getMaxTotalInterest();
