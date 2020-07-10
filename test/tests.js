@@ -1,8 +1,7 @@
 const BN = require('bn.js');
 const chai = require('chai');
-const chaiBN = require('chai-bn');
 
-chai.use(chaiBN(BN));
+chai.use(require('chai-bn')(BN));
 
 const {expect} = chai;
 
@@ -149,25 +148,13 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(betsWithdrawn, web3.utils.toWei(totalStake.toString(), 'ether'));
 
     // check that cant withdraw twice
-    let user = user0;
-    await dai.resetBalance(user);
-    await magicBet.withdraw({from: user});
-    let userBalance = await dai.balanceOf(user);
+    let userBalance = await resetAndWithdrawBalance(user0);
     assert.equal(userBalance, 0);
-    user = user1;
-    await dai.resetBalance(user);
-    await magicBet.withdraw({from: user});
-    userBalance = await dai.balanceOf(user);
+    userBalance = await resetAndWithdrawBalance(user1);
     assert.equal(userBalance, 0);
-    user = user2;
-    await dai.resetBalance(user);
-    await magicBet.withdraw({from: user});
-    userBalance = await dai.balanceOf(user);
+    userBalance = await resetAndWithdrawBalance(user2);
     assert.equal(userBalance, 0);
-    user = user3;
-    await dai.resetBalance(user);
-    await magicBet.withdraw({from: user});
-    userBalance = await dai.balanceOf(user);
+    userBalance = await resetAndWithdrawBalance(user3);
     assert.equal(userBalance, 0);
 
     // check that nothing is withdrawn if you didnt bet
@@ -175,17 +162,25 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check that ERC20s have been burnt
+    const zero = new BN(0);
     tokenBalance = await token1.balanceOf(user0);
-    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token1.balanceOf(user1);
-    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token1.balanceOf(user2);
-    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token2.balanceOf(user2);
-    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(tokenBalance);
     tokenBalance = await token2.balanceOf(user3);
-    expect(new BN(0)).to.be.bignumber.equal(tokenBalance);
+    expect(zero).to.be.bignumber.equal(tokenBalance);
   });
+
+  async function resetAndWithdrawBalance(user) {
+    await dai.resetBalance(user);
+    await magicBet.withdraw({from: user});
+    let userBalance = await dai.balanceOf(user);
+    return userBalance;
+  }
 
   it('check market states transition', async () => {
     const marketStates = Object.freeze({WAITING: 0, OPEN: 1, LOCKED: 2, WITHDRAW: 3});
