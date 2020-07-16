@@ -53,8 +53,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
 
-    uint256 public totalBets;
-    uint256 public betsWithdrawn;
+    uint256 public totalBets; // equivilent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
+    uint256 public betsWithdrawn; // totalBets less - betsWithdrawn should always be equal to outstanding bets
     address[] public participants;
 
     //////// Market resolution variables ////////
@@ -95,10 +95,13 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         marketResolutionTime = uint32(_marketTimes[2]);
         numberOfOutcomes = _outcomeNamesArray.length;
 
-        // create the tokens
+        // create the tokens for each outcome
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             _createTokenContract(_outcomeNamesArray[i]);
         }
+
+        // create an additional token which can never win to sponsor an event
+        _createTokenContract('Sponsor');
 
         // Create the question on Realitio
         uint256 _templateId = 2;
@@ -136,6 +139,19 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     modifier checkState(States requiredState) {
         require(getCurrentState() == requiredState, 'function cannot be called at this time');
+        _;
+    }
+
+    /// @notice checks the outcome exists
+    modifier outcomeExists(uint256 _outcome) {
+        // + 1 due to sponsor outcome
+        require(_outcome < (numberOfOutcomes + 1), 'This outcome does not exist');
+        _;
+    }
+
+    /// @notice what it says on the tin
+    modifier amountNotZero(uint256 _dai) {
+        require(_dai > 0, 'Amount must be above zero');
         _;
     }
 
@@ -247,7 +263,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function getUserBetsAllOutcomes() public view returns (uint256) {
         // get total bet across all outcomes
         uint256 _userBetsAllOutcomes;
-        for (uint256 i = 0; i < numberOfOutcomes; i++) {
+        for (uint256 i = 0; i < numberOfOutcomes + 1; i++) {
+            // + 1 due to sponsor outcome
             Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
@@ -333,7 +350,14 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
 
-    function placeBet(uint256 _outcome, uint256 _dai) external payable checkState(States.OPEN) whenNotPaused {
+    function placeBet(uint256 _outcome, uint256 _dai)
+        external
+        payable
+        checkState(States.OPEN)
+        outcomeExists(_outcome)
+        amountNotZero(_dai)
+        whenNotPaused
+    {
         _placeBet(_outcome, _dai);
         _receiveCash(msg.sender, _dai);
         _sendToAave(_dai);
@@ -402,7 +426,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _burnUsersTokens() internal {
-        for (uint256 i = 0; i < numberOfOutcomes; i++) {
+        for (uint256 i = 0; i < numberOfOutcomes + 1; i++) {
+            // + 1 due to sponsor outcome
             Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
