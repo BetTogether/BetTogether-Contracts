@@ -138,14 +138,14 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// MODIFIERS /////////////////
     ////////////////////////////////////
     modifier checkState(States requiredState) {
-        require(getCurrentState() == requiredState, 'function cannot be called at this time');
+        require(getCurrentState() == requiredState, 'Function cannot be called at this time');
         _;
     }
 
     /// @notice checks the outcome exists
     modifier outcomeExists(uint256 _outcome) {
         // + 1 due to sponsor outcome
-        require(_outcome < (numberOfOutcomes + 1), 'This outcome does not exist');
+        require(_outcome < (numberOfOutcomes + 1), 'Outcome does not exist');
         _;
     }
 

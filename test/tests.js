@@ -409,6 +409,13 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
   });
 
+  it('check expected failures', async () => {
+    await time.increase(time.duration.seconds(100));
+    // expected failure when outcome does not exist
+    await expect(placeBet(user0, 3, stake0)).to.be.revertedWith(errors.outcomeDoesNotExist);
+    await expect(placeBet(user0, 1, 0)).to.be.revertedWith(errors.zeroDai);
+  });
+
   async function letOutcomeOccur(eventOutcome = OCCURING) {
     await aToken.generate10PercentInterest(magicBet.address);
     await realitio.setResult(eventOutcome);
