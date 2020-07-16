@@ -19,12 +19,14 @@ const UniswapMockup = artifacts.require('UniswapMockup.sol');
 
 const NON_OCCURING = 0;
 const OCCURING = 1;
+const SPONSOR = 2;
 
 const stake0 = 200;
 const stake1 = 300;
 const stake2 = 500;
 const stake3 = 100;
 const stake4 = 400;
+const stake5 = 200;
 
 let aToken, token1, token2, dai, magicBet, magicBetFactory, uniswap, realitio, user0, user1, user2, user3, user4;
 
@@ -34,6 +36,7 @@ contract('MagicBetTests', (accounts) => {
   user2 = accounts[2];
   user3 = accounts[3];
   user4 = accounts[4];
+  user5 = accounts[5];
 
   beforeEach(async () => {
     dai = await DaiMockup.new();
@@ -74,14 +77,15 @@ contract('MagicBetTests', (accounts) => {
     magicBet = await MagicBet.at(marketAddress);
   }
 
-  it('betting leads to winners receiving both stake and interest, losers receiving their stake back; check ERC20s are minted and then destroyed; check cant withdraw twice', async () => {
+  it('betting leads to winners receiving both stake and interest, losers receiving their stake back; check ERC20s are minted and then destroyed; check cant withdraw twice; sponsor bet', async () => {
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, NON_OCCURING, stake0);
     await placeBet(user1, NON_OCCURING, stake1);
     await placeBet(user2, NON_OCCURING, stake2);
     await placeBet(user2, OCCURING, stake3);
     await placeBet(user3, OCCURING, stake4);
-    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+    await placeBet(user4, SPONSOR, stake5);
+    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4 + stake5;
     const totalWinningStake = stake3 + stake4;
 
     // check that ERC20s are minted
@@ -92,6 +96,7 @@ contract('MagicBetTests', (accounts) => {
     expect(asWeiBN(stake2)).to.be.bignumber.equal(await token1.balanceOf(user2));
     expect(asWeiBN(stake3)).to.be.bignumber.equal(await token2.balanceOf(user2));
     expect(asWeiBN(stake4)).to.be.bignumber.equal(await token2.balanceOf(user3));
+    expect(asWeiBN(stake5)).to.be.bignumber.equal(await token3.balanceOf(user4));
 
     await letOutcomeOccur();
 
@@ -113,6 +118,10 @@ contract('MagicBetTests', (accounts) => {
     userResult = await withdrawAndReturnActualAndExpectedBalance(user1, 0, stake1, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
+    // check returned deposit for sponsor user4
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user4, 0, stake5, totalStake, totalWinningStake);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+
     // check total bets and withdrawn bets
     assert.equal(await magicBet.totalBets.call(), asWei(totalStake));
     assert.equal(await magicBet.betsWithdrawn.call(), asWei(totalStake));
@@ -122,9 +131,10 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(await resetAndWithdrawBalance(user1), 0);
     assert.equal(await resetAndWithdrawBalance(user2), 0);
     assert.equal(await resetAndWithdrawBalance(user3), 0);
+    assert.equal(await resetAndWithdrawBalance(user4), 0);
 
     // check that nothing is withdrawn if you didnt bet
-    userResult = await withdrawAndReturnActualAndExpectedBalance(user4, 0, 0, totalStake, totalWinningStake);
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user5, 0, 0, totalStake, totalWinningStake);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     // check that ERC20s have been burnt
@@ -134,6 +144,7 @@ contract('MagicBetTests', (accounts) => {
     expect(zero).to.be.bignumber.equal(await token1.balanceOf(user2));
     expect(zero).to.be.bignumber.equal(await token2.balanceOf(user2));
     expect(zero).to.be.bignumber.equal(await token2.balanceOf(user3));
+    expect(zero).to.be.bignumber.equal(await token3.balanceOf(user4));
   });
 
   async function resetAndWithdrawBalance(user) {
@@ -363,7 +374,7 @@ contract('MagicBetTests', (accounts) => {
     expect(totalInterest).to.be.bignumber.equal(new BN(0));
   });
 
-  it('event with three outcomes', async () => {
+  it('event with three outcomes + sponsor', async () => {
     await createMarket(
       'Who will win the 2020 US General Election',
       'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden", "Kanye West"␟news-politics␟en_US',
@@ -371,15 +382,17 @@ contract('MagicBetTests', (accounts) => {
     );
     const marketAddress = await magicBetFactory.marketAddresses.call(1);
     magicBet = await MagicBet.at(marketAddress);
-    const totalStake = stake0 + stake1 + stake2;
+    const totalStake = stake0 + stake1 + stake2 + stake3;
     const donaldTrump = 0;
     const joeBiden = 1;
     const kanyeWest = 2;
+    const sponsor = 3;
 
     await time.increase(time.duration.seconds(100));
     await placeBet(user0, donaldTrump, stake0);
     await placeBet(user1, joeBiden, stake1);
     await placeBet(user2, kanyeWest, stake2);
+    await placeBet(user3, sponsor, stake3);
 
     await letOutcomeOccur(kanyeWest);
 
@@ -390,6 +403,9 @@ contract('MagicBetTests', (accounts) => {
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
 
     userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake2, 0, totalStake, stake2, 3);
+    assert.equal(userResult.actualBalance, userResult.expectedBalance);
+
+    userResult = await withdrawAndReturnActualAndExpectedBalance(user3, 0, stake3, totalStake, stake2, 3);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
   });
 
@@ -411,6 +427,7 @@ contract('MagicBetTests', (accounts) => {
     const tokenAddresses = await magicBet.getTokenAddresses.call();
     token1 = await Token.at(tokenAddresses[0]);
     token2 = await Token.at(tokenAddresses[1]);
+    token3 = await Token.at(tokenAddresses[2]);
   }
 
   async function withdrawAndReturnActualAndExpectedBalance(
