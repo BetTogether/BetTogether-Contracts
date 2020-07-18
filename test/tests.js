@@ -40,6 +40,7 @@ contract('MagicBetTests', (accounts) => {
     aToken = await aTokenMockup.new(dai.address);
     realitio = await RealitioMockup.new();
     uniswap = await UniswapMockup.new();
+    const magicBetLib = await MagicBet.new();
     magicBetFactory = await MagicBetFactory.new(
       dai.address,
       aToken.address,
@@ -48,6 +49,7 @@ contract('MagicBetTests', (accounts) => {
       realitio.address,
       uniswap.address
     );
+    await magicBetFactory.setLibraryAddress(magicBetLib.address);
     await createMarket(
       'Who will win the 2020 US General Election',
       'Who will win the 2020 US General Election␟"Donald Trump","Joe Biden"␟news-politics␟en_US',
