@@ -402,7 +402,7 @@ contract('MagicBetTests', (accounts) => {
 
   async function placeBet(user, outcome, stake) {
     await dai.mint(asWei(stake), {from: user});
-    await magicBet.placeBet(outcome, asWei(stake), {
+    await magicBet.placeBet(outcome, asWei(stake), 0, {
       from: user,
     });
   }
