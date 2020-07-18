@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 
 import '../MBMarket.sol';
 
-contract MagicBetMockup is MBMarket {
+contract magicBetMockup is MBMarket {
     function newFunction() external pure returns (uint256) {
         return 1337;
     }
