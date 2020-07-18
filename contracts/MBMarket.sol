@@ -26,6 +26,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     uint256 public constant UNRESOLVED_OUTCOME_RESULT = type(uint256).max;
     uint256 public constant ORACLE_TIMEOUT_TIME = 4 weeks;
+    bool private isInitialized = false;
 
     //////// Externals ////////
     Dai public dai;
@@ -58,12 +59,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     address[] public participants;
 
     //////// Market resolution variables ////////
-    uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT;
+    uint256 public winningOutcome;
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
     ////////////////////////////////////
-    constructor(
+    function initialize(
         Dai _daiAddress,
         address[3] memory _aaveAddresses,
         IRealitio _realitioAddress,
@@ -72,12 +73,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         uint256[4] memory _marketTimes,
         address _arbitrator,
         string memory _realitioQuestion,
-        string[] memory _outcomeNamesArray,
-        address _owner
+        string[] memory _outcomeNamesArray
     ) public {
-        if (_owner != msg.sender) {
-            transferOwnership(_owner);
-        }
+        require(!isInitialized, 'Contract already initialized.');
+
+        winningOutcome = UNRESOLVED_OUTCOME_RESULT;
+
         // externals
         dai = _daiAddress;
         aToken = IaToken(_aaveAddresses[0]);
@@ -442,10 +443,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ///// BOILERPLATE FUNCTIONS ////////
     ////////////////////////////////////
     function disableContract() public onlyOwner whenNotPaused returns (bool) {
+        // onlyOwner ensures only factory can pause
         _pause();
     }
 
     function enableContract() public onlyOwner whenPaused returns (bool) {
+        // onlyOwner ensures only factory can unpause
         _unpause();
     }
 
