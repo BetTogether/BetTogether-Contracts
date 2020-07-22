@@ -4,7 +4,9 @@ pragma experimental ABIEncoderV2;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
+
 import './MBMarket.sol';
+import './lib/CloneFactory.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
@@ -12,7 +14,9 @@ import './interfaces/IUniswapV2Router02.sol';
 
 /// @title The MagicBet factory
 /// @notice This contract allows for generating new market instances
-contract MBMarketFactory is Ownable, Pausable {
+contract MBMarketFactory is CloneFactory, Ownable, Pausable {
+    address public libraryAddress;
+
     Dai public dai;
     IaToken public aToken;
     IAaveLendingPool public aaveLendingPool;
@@ -21,15 +25,10 @@ contract MBMarketFactory is Ownable, Pausable {
     IUniswapV2Router02 public uniswapRouter;
 
     mapping(address => bool) public mappingOfMarkets;
-    address[] public marketAddresses;
+    address payable[] public marketAddresses;
     address public mostRecentContract;
 
     event MarketCreated(address contractAddress);
-
-    modifier createdByThisFactory(address marketAddress) {
-        require(mappingOfMarkets[marketAddress], "Must've been created by the corresponding factory");
-        _;
-    }
 
     constructor(
         Dai _daiAddress,
@@ -45,6 +44,11 @@ contract MBMarketFactory is Ownable, Pausable {
         aaveLendingPoolCore = _aaveLpcoreAddress;
         realitio = _realitioAddress;
         uniswapRouter = _uniswapRouter;
+    }
+
+    /// @notice This function sets the library for fut
+    function setLibraryAddress(address _libraryAddress) public onlyOwner {
+        libraryAddress = _libraryAddress;
     }
 
     /// @notice This contract is the framework of each new market
@@ -67,41 +71,59 @@ contract MBMarketFactory is Ownable, Pausable {
         string memory _realitioQuestion,
         string[] memory _outcomeNamesArray
     ) public virtual onlyOwner whenNotPaused returns (MBMarket) {
-        uint256[4] memory marketTimes = [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout];
-        MBMarket newContract = new MBMarket({
+        address payable newAddress = payable(createClone(libraryAddress));
+
+        marketAddresses.push(newAddress);
+        mappingOfMarkets[newAddress] = true;
+        mostRecentContract = newAddress;
+        emit MarketCreated(address(newAddress));
+
+        _initLatestMarket(
+            _eventName,
+            _marketOpeningTime,
+            _marketLockingTime,
+            _marketResolutionTime,
+            _timeout,
+            _arbitrator,
+            _realitioQuestion,
+            _outcomeNamesArray
+        );
+
+        return MBMarket(newAddress);
+    }
+
+    function getMarkets() public view returns (address payable[] memory) {
+        return marketAddresses;
+    }
+
+    function disableMarket(address payable marketAddress) public onlyOwner returns (bool) {
+        return MBMarket(marketAddress).disableContract();
+    }
+
+    function enableMarket(address payable marketAddress) public onlyOwner returns (bool) {
+        return MBMarket(marketAddress).enableContract();
+    }
+
+    function _initLatestMarket(
+        string memory _eventName,
+        uint256 _marketOpeningTime,
+        uint256 _marketLockingTime,
+        uint32 _marketResolutionTime,
+        uint32 _timeout,
+        address _arbitrator,
+        string memory _realitioQuestion,
+        string[] memory _outcomeNamesArray
+    ) private {
+        MBMarket(marketAddresses[marketAddresses.length - 1]).initialize({
             _daiAddress: dai,
             _aaveAddresses: [address(aToken), address(aaveLendingPool), address(aaveLendingPoolCore)],
             _realitioAddress: realitio,
             _uniswapRouter: uniswapRouter,
             _eventName: _eventName,
-            _marketTimes: marketTimes,
+            _marketTimes: [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout],
             _arbitrator: _arbitrator,
             _realitioQuestion: _realitioQuestion,
-            _outcomeNamesArray: _outcomeNamesArray,
-            _owner: msg.sender
+            _outcomeNamesArray: _outcomeNamesArray
         });
-        address newAddress = address(newContract);
-        marketAddresses.push(newAddress);
-        mappingOfMarkets[newAddress] = true;
-        mostRecentContract = newAddress;
-        emit MarketCreated(address(newAddress));
-        return newContract;
-    }
-
-    function getMarkets() public view returns (address[] memory) {
-        return marketAddresses;
-    }
-
-    function destroy() public onlyOwner whenPaused {
-        selfdestruct(msg.sender);
-    }
-
-    function disableMarket(address payable marketAddress)
-        public
-        onlyOwner
-        createdByThisFactory(marketAddress)
-        returns (bool)
-    {
-        return MBMarket(marketAddress).disableContract();
     }
 }
