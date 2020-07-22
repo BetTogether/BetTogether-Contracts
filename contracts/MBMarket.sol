@@ -359,7 +359,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         uint256 _outcome,
         uint256 _dai,
         uint256 _uniswapDeadline // set to 0 if paying in DAI
-    ) external payable checkState(States.OPEN) whenNotPaused {
+    ) external payable checkState(States.OPEN) outcomeExists(_outcome) amountNotZero(_dai) whenNotPaused {
         _placeBet(_outcome, _dai);
         _receiveCash(msg.sender, _dai, _uniswapDeadline);
         _sendToAave(_dai);
