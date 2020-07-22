@@ -53,7 +53,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
 
-    uint256 public totalBets; // equivilent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
+    uint256 public totalBets; // equivalent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
     uint256 public betsWithdrawn; // totalBets less - betsWithdrawn should always be equal to outstanding bets
     address[] public participants;
 
