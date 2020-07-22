@@ -144,8 +144,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice checks the outcome exists
     modifier outcomeExists(uint256 _outcome) {
-        // + 1 due to sponsor outcome
-        require(_outcome < (numberOfOutcomes + 1), 'Outcome does not exist');
+        // <= due to sponsor outcome
+        require(_outcome <= numberOfOutcomes, 'Outcome does not exist');
         _;
     }
 
@@ -263,8 +263,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     function getUserBetsAllOutcomes() public view returns (uint256) {
         // get total bet across all outcomes
         uint256 _userBetsAllOutcomes;
-        for (uint256 i = 0; i < numberOfOutcomes + 1; i++) {
-            // + 1 due to sponsor outcome
+        for (uint256 i = 0; i <= numberOfOutcomes; i++) {
+            // <= due to sponsor outcome
             Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
@@ -426,8 +426,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _burnUsersTokens() internal {
-        for (uint256 i = 0; i < numberOfOutcomes + 1; i++) {
-            // + 1 due to sponsor outcome
+        for (uint256 i = 0; i <= numberOfOutcomes; i++) {
+            // <= due to sponsor outcome
             Token _token = Token(tokenAddresses[i]);
             uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
             if (_userBetThisOutcome > 0) {
