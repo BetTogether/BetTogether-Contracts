@@ -26,6 +26,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     uint256 public constant UNRESOLVED_OUTCOME_RESULT = type(uint256).max;
     uint256 public constant ORACLE_TIMEOUT_TIME = 4 weeks;
+    bool private isInitialized = false;
 
     //////// Externals ////////
     Dai public dai;
@@ -58,12 +59,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     address[] public participants;
 
     //////// Market resolution variables ////////
-    uint256 public winningOutcome = UNRESOLVED_OUTCOME_RESULT;
+    uint256 public winningOutcome;
 
     ////////////////////////////////////
     //////// CONSTRUCTOR ///////////////
     ////////////////////////////////////
-    constructor(
+    function initialize(
         Dai _daiAddress,
         address[3] memory _aaveAddresses,
         IRealitio _realitioAddress,
@@ -72,12 +73,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         uint256[4] memory _marketTimes,
         address _arbitrator,
         string memory _realitioQuestion,
-        string[] memory _outcomeNamesArray,
-        address _owner
+        string[] memory _outcomeNamesArray
     ) public {
-        if (_owner != msg.sender) {
-            transferOwnership(_owner);
-        }
+        require(!isInitialized, 'Contract already initialized.');
+
+        winningOutcome = UNRESOLVED_OUTCOME_RESULT;
+
         // externals
         dai = _daiAddress;
         aToken = IaToken(_aaveAddresses[0]);
@@ -323,9 +324,13 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     /// @notice common function for all incoming DAI transfers
     /// @param _from address that is receiving cash
     /// @param _amount amount to recieve
-    function _receiveCash(address _from, uint256 _amount) internal {
+    function _receiveCash(
+        address _from,
+        uint256 _amount,
+        uint256 _uniswapDeadline
+    ) internal {
         if (msg.value > 0) {
-            _swapETHForExactTokenWithUniswap(_amount);
+            _swapETHForExactTokenWithUniswap(_amount, _uniswapDeadline);
             return;
         }
 
@@ -350,16 +355,13 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     //////// EXTERNAL FUNCTIONS ////////
     ////////////////////////////////////
 
-    function placeBet(uint256 _outcome, uint256 _dai)
-        external
-        payable
-        checkState(States.OPEN)
-        outcomeExists(_outcome)
-        amountNotZero(_dai)
-        whenNotPaused
-    {
+    function placeBet(
+        uint256 _outcome,
+        uint256 _dai,
+        uint256 _uniswapDeadline // set to 0 if paying in DAI
+    ) external payable checkState(States.OPEN) whenNotPaused {
         _placeBet(_outcome, _dai);
-        _receiveCash(msg.sender, _dai);
+        _receiveCash(msg.sender, _dai, _uniswapDeadline);
         _sendToAave(_dai);
     }
 
@@ -438,10 +440,10 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    function _swapETHForExactTokenWithUniswap(uint256 daiAmount) private {
+    function _swapETHForExactTokenWithUniswap(uint256 daiAmount, uint256 deadline) private {
         address[] memory path = _getDAIforETHpath();
 
-        uniswapRouter.swapETHForExactTokens{value: msg.value}(daiAmount, path, address(this), now + 15);
+        uniswapRouter.swapETHForExactTokens{value: msg.value}(daiAmount, path, address(this), deadline);
 
         (bool success, ) = msg.sender.call{value: address(this).balance}(''); // refund leftover ETH
         require(success, 'Refund of ETH failed');
@@ -459,10 +461,12 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ///// BOILERPLATE FUNCTIONS ////////
     ////////////////////////////////////
     function disableContract() public onlyOwner whenNotPaused returns (bool) {
+        // onlyOwner ensures only factory can pause
         _pause();
     }
 
     function enableContract() public onlyOwner whenPaused returns (bool) {
+        // onlyOwner ensures only factory can unpause
         _unpause();
     }
 
