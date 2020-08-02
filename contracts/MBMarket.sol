@@ -215,14 +215,14 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         return _calculateWinnings(totalBets.sub(betsWithdrawn), getUserBetsAllOutcomes());
     }
 
-    function getEstimatedETHforDAI(uint256 ethAmount) public view returns (uint256[] memory) {
+    function getEstimatedETHforDAI(uint256 daiAmount) public view returns (uint256[] memory) {
         address[] memory path = _getDAIforETHpath();
-        return uniswapRouter.getAmountsIn(ethAmount, path);
+        return uniswapRouter.getAmountsIn(daiAmount, path);
     }
 
-    function getEstimatedDAIforETH(uint256 daiAmount) public view returns (uint256[] memory) {
+    function getEstimatedDAIforETH(uint256 ethAmount) public view returns (uint256[] memory) {
         address[] memory path = _getDAIforETHpath();
-        return uniswapRouter.getAmountsOut(daiAmount, path);
+        return uniswapRouter.getAmountsOut(ethAmount, path);
     }
 
     /// @notice returns winning user's share of interest
