@@ -182,11 +182,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         return participants.length;
     }
 
-    function getParticipantsBet(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokenAddresses[_outcome]);
-        return _token.balanceOf(msg.sender);
-    }
-
     function getMaxTotalInterest() public view returns (uint256) {
         if (maxInterest > 0) {
             return maxInterest;
@@ -202,57 +197,9 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         return _totalInterest;
     }
 
-    function getWinningsGivenOutcome(uint256 _outcome) public view returns (uint256) {
-        Token _token = Token(tokenAddresses[_outcome]);
-        uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
-        uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
-        return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
-    }
-
-    /// @dev If invalid outcome, simply pay out interest in proportion to bets across all tokenAddresses
-    /// @dev i.e. as if all the outcomes 'won'
-    function getWinningsInvalid() public view returns (uint256) {
-        return _calculateWinnings(totalBets.sub(betsWithdrawn), getUserBetsAllOutcomes());
-    }
-
     function getEstimatedETHforDAI(uint256 daiAmount) public view returns (uint256[] memory) {
         address[] memory path = _getDAIforETHpath();
         return uniswapRouter.getAmountsIn(daiAmount, path);
-    }
-
-    function getEstimatedDAIforETH(uint256 ethAmount) public view returns (uint256[] memory) {
-        address[] memory path = _getDAIforETHpath();
-        return uniswapRouter.getAmountsOut(ethAmount, path);
-    }
-
-    /// @notice returns winning user's share of interest
-    /// @param _totalBetAmount total bet among all outcomes
-    /// @param _userBetOutcomeAmount total bet on winning outcome
-    /// @return users's share of the interest
-    function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 winnings = 0;
-
-        if (_totalBetAmount > 0) {
-            uint256 _totalInterest = getTotalInterest();
-            winnings = (_totalInterest.mul(_userBetOutcomeAmount)).div(_totalBetAmount);
-        }
-
-        return winnings;
-    }
-
-    function getUserBetsAllOutcomes() public view returns (uint256) {
-        // get total bet across all outcomes
-        uint256 _userBetsAllOutcomes;
-        for (uint256 i = 0; i < numberOfOutcomes; i++) {
-            Token _token = Token(tokenAddresses[i]);
-            uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
-            _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
-        }
-        return _userBetsAllOutcomes;
     }
 
     ////////////////////////////////////
@@ -361,9 +308,47 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     ////////////////////////////////////
     //////// INTERNAL FUNCTIONS ////////
     ////////////////////////////////////
+
+    /// @notice returns winning user's share of interest
+    /// @param _totalBetAmount total bet among all outcomes
+    /// @param _userBetOutcomeAmount total bet on winning outcome
+    /// @return users's share of the interest
+    function _calculateWinnings(uint256 _totalBetAmount, uint256 _userBetOutcomeAmount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 winnings = 0;
+
+        if (_totalBetAmount > 0) {
+            uint256 _totalInterest = getTotalInterest();
+            winnings = (_totalInterest.mul(_userBetOutcomeAmount)).div(_totalBetAmount);
+        }
+
+        return winnings;
+    }
+
+    function _getUserBetsAllOutcomes() internal view returns (uint256) {
+        // get total bet across all outcomes
+        uint256 _userBetsAllOutcomes;
+        for (uint256 i = 0; i < numberOfOutcomes; i++) {
+            Token _token = Token(tokenAddresses[i]);
+            uint256 _userBetThisOutcome = _token.balanceOf(msg.sender);
+            _userBetsAllOutcomes = _userBetsAllOutcomes.add(_userBetThisOutcome);
+        }
+        return _userBetsAllOutcomes;
+    }
+
+    function _getWinningsGivenOutcome(uint256 _outcome) internal view returns (uint256) {
+        Token _token = Token(tokenAddresses[_outcome]);
+        uint256 _userBetOnOutcome = _token.balanceOf(msg.sender);
+        uint256 _totalRemainingBetsOnOutcome = totalBetsPerOutcome[_outcome].sub(betsWithdrawnPerOutcome[_outcome]);
+        return _calculateWinnings(_totalRemainingBetsOnOutcome, _userBetOnOutcome);
+    }
+
     function _payoutWinnings() internal {
-        uint256 _winnings = getWinningsGivenOutcome(winningOutcome);
-        uint256 _daiToSend = _winnings.add(getUserBetsAllOutcomes());
+        uint256 _winnings = _getWinningsGivenOutcome(winningOutcome);
+        uint256 _daiToSend = _winnings.add(_getUserBetsAllOutcomes());
 
         // externals
         if (_daiToSend > 0) {
@@ -373,8 +358,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _payoutWinningsInvalid() internal {
-        uint256 _winningsInvalid = getWinningsInvalid();
-        uint256 _daiToSend = _winningsInvalid.add(getUserBetsAllOutcomes());
+        uint256 _winningsInvalid = _calculateWinnings(totalBets.sub(betsWithdrawn), _getUserBetsAllOutcomes());
+        uint256 _daiToSend = _winningsInvalid.add(_getUserBetsAllOutcomes());
 
         // externals
         if (_daiToSend > 0) {
