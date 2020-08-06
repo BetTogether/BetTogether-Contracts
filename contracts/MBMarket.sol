@@ -384,6 +384,19 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         _burnUsersTokens();
     }
 
+    /// @dev as above except can be called at any time
+    function withdrawSponsor() external whenNotPaused nonReentrant {
+        // token at position numberOfOutcomes in the array will be the sponsor token
+        Token _token = Token(tokenAddresses[numberOfOutcomes]);
+        uint256 _sponsorAmount = _token.balanceOf(msg.sender);
+        // send back the DAI and burn the tokens
+        if (_sponsorAmount > 0) {
+            _redeemFromAave(_sponsorAmount);
+            _sendCash(msg.sender, _sponsorAmount);
+            _token.burn(msg.sender, _sponsorAmount);
+        }
+    }
+
     ////////////////////////////////////
     //////// INTERNAL FUNCTIONS ////////
     ////////////////////////////////////
