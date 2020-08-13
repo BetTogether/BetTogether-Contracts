@@ -54,8 +54,10 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256[]) private betAmountsArray;
     mapping(uint256 => uint256[]) private timestampsArray;
 
-    uint256 public totalBets;
-    uint256 public betsWithdrawn;
+    uint256 public totalBets; // equivalent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
+    uint256 public betsWithdrawn; // totalBets less - betsWithdrawn should always be equal to outstanding bets
+    uint256 public totalSponsoredMoney; // additional sponsored money that cannot win
+    mapping(address => uint256) public sponsoredMoney;
     address[] public participants;
 
     //////// Market resolution variables ////////
@@ -312,6 +314,24 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         }
 
         _burnUsersTokens();
+    }
+
+    function sponsorEvent(uint256 sponsorAmount) external {
+        dai.transferFrom(msg.sender, address(this), sponsorAmount);
+        _sendToAave(sponsorAmount);
+        sponsoredMoney[msg.sender] = sponsoredMoney[msg.sender].add(sponsorAmount);
+        totalSponsoredMoney = totalSponsoredMoney.add(sponsorAmount);
+    }
+
+    function withdrawSponsorMoney(uint256 withdrawAmount) external {
+        sponsoredMoney[msg.sender] = sponsoredMoney[msg.sender].sub(
+            withdrawAmount,
+            'Cannot withdraw more than deposited'
+        );
+        totalSponsoredMoney = totalSponsoredMoney.sub(withdrawAmount);
+
+        _redeemFromAave(withdrawAmount);
+        dai.transfer(msg.sender, withdrawAmount);
     }
 
     ////////////////////////////////////
