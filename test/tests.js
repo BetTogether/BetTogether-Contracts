@@ -34,6 +34,7 @@ contract('MagicBetTests', (accounts) => {
   user2 = accounts[2];
   user3 = accounts[3];
   user4 = accounts[4];
+  sponsor = accounts[5];
 
   beforeEach(async () => {
     dai = await DaiMockup.new();
@@ -393,6 +394,38 @@ contract('MagicBetTests', (accounts) => {
 
     userResult = await withdrawAndReturnActualAndExpectedBalance(user2, stake2, 0, totalStake, stake2, 3);
     assert.equal(userResult.actualBalance, userResult.expectedBalance);
+  });
+
+  it('sponsoring an event leads to more interests', async () => {
+    await time.increase(time.duration.seconds(100));
+    await placeBet(user0, NON_OCCURING, stake0);
+    await placeBet(user1, NON_OCCURING, stake1);
+    await placeBet(user2, NON_OCCURING, stake2);
+    await placeBet(user2, OCCURING, stake3);
+    await placeBet(user3, OCCURING, stake4);
+    const totalStake = stake0 + stake1 + stake2 + stake3 + stake4;
+    const totalWinningStake = stake3 + stake4;
+
+    await dai.mint(1000, {from: sponsor});
+    await magicBet.sponsorEvent(1000, {from: sponsor});
+
+    await initialiseERC20s();
+    await letOutcomeOccur();
+
+    const sponsorInterests = 220;
+    const userResult = await withdrawAndReturnActualAndExpectedBalance(
+      user2,
+      stake3,
+      stake2,
+      totalStake,
+      totalWinningStake
+    );
+    assert.equal(userResult.actualBalance, parseInt(userResult.expectedBalance, 10) + sponsorInterests);
+
+    await expect(magicBet.withdrawSponsorMoney(2000, {from: sponsor})).to.be.revertedWith(errors.withdrawTooMuch);
+    await magicBet.withdrawSponsorMoney(1000, {from: sponsor});
+
+    assert.equal(await dai.balanceOf(sponsor), 1000);
   });
 
   async function letOutcomeOccur(eventOutcome = OCCURING) {
