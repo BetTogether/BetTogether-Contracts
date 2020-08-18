@@ -58,22 +58,17 @@ module.exports = function (deployer, network) {
       realitioAddressKovan,
       uniswapRouterKovan
     );
-    // market deploy
-    // deployer.deploy(
-    //   MBMarket,
-    //   daiAddressKovan,
-    //   aaveAtokenAddressKovan,
-    //   aaveLendingPoolAddressKovan,
-    //   aaveLendingPoolCoreAddressKovan,
-    //   realitioAddressKovan,
-    //   eventName,
-    //   marketOpeningTime,
-    //   marketResolutionTime,
-    //   arbitrator,
-    //   question,
-    //   numberOfOutcomes,
-    //   owner,
-    //   true
-    // );
+    var market;
+    deployer
+      .then(function () {
+        return MBMarket.new();
+      })
+      .then(function (instance) {
+        market = instance;
+        return MBMarketFactory.deployed();
+      })
+      .then(function (instance) {
+        return instance.setLibraryAddress(market.address);
+      });
   }
 };
