@@ -78,6 +78,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         string[] memory _outcomeNamesArray
     ) public {
         require(!isInitialized, 'Contract already initialized.');
+        isInitialized = true;
 
         winningOutcome = UNRESOLVED_OUTCOME_RESULT;
 
