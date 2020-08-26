@@ -1,5 +1,6 @@
 usePlugin('@nomiclabs/buidler-waffle');
 usePlugin('@nomiclabs/buidler-truffle5');
+usePlugin('buidler-gas-reporter');
 
 module.exports = {
   networks: {
@@ -9,7 +10,7 @@ module.exports = {
     },
   },
   solc: {
-    version: '0.6.10',
+    version: '0.6.12',
     optimizer: {
       enabled: true, // enable for now, might cause inconsistent stacktrace lines
       runs: 200,
