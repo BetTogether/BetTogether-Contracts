@@ -10,7 +10,6 @@ import './lib/CloneFactory.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
-import './interfaces/IUniswapV2Router02.sol';
 
 /// @title The MagicBet factory
 /// @notice This contract allows for generating new market instances
@@ -22,7 +21,6 @@ contract MBMarketFactory is CloneFactory, Ownable, Pausable {
     IAaveLendingPool public aaveLendingPool;
     IAaveLendingPoolCore public aaveLendingPoolCore;
     IRealitio public realitio;
-    IUniswapV2Router02 public uniswapRouter;
 
     mapping(address => bool) public mappingOfMarkets;
     address payable[] public marketAddresses;
@@ -35,15 +33,13 @@ contract MBMarketFactory is CloneFactory, Ownable, Pausable {
         IaToken _aTokenAddress,
         IAaveLendingPool _aaveLpAddress,
         IAaveLendingPoolCore _aaveLpcoreAddress,
-        IRealitio _realitioAddress,
-        IUniswapV2Router02 _uniswapRouter
+        IRealitio _realitioAddress
     ) public {
         dai = _daiAddress;
         aToken = _aTokenAddress;
         aaveLendingPool = _aaveLpAddress;
         aaveLendingPoolCore = _aaveLpcoreAddress;
         realitio = _realitioAddress;
-        uniswapRouter = _uniswapRouter;
     }
 
     /// @notice This function sets the library for fut
@@ -118,7 +114,6 @@ contract MBMarketFactory is CloneFactory, Ownable, Pausable {
             _daiAddress: dai,
             _aaveAddresses: [address(aToken), address(aaveLendingPool), address(aaveLendingPoolCore)],
             _realitioAddress: realitio,
-            _uniswapRouter: uniswapRouter,
             _eventName: _eventName,
             _marketTimes: [_marketOpeningTime, _marketLockingTime, _marketResolutionTime, _timeout],
             _arbitrator: _arbitrator,

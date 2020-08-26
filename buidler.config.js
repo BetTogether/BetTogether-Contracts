@@ -1,6 +1,5 @@
 usePlugin('@nomiclabs/buidler-waffle');
 usePlugin('@nomiclabs/buidler-truffle5');
-usePlugin('buidler-gas-reporter');
 
 module.exports = {
   networks: {
