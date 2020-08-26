@@ -54,6 +54,8 @@ contract('MagicBetTests', (accounts) => {
     );
     const marketAddress = await magicBetFactory.mostRecentContract();
     magicBet = await MagicBet.at(marketAddress);
+    var owner = await magicBet.owner();
+    console.log(owner);
   }
 
   it('check market states transition', async () => {
