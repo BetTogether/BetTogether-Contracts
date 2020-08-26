@@ -4,9 +4,10 @@ pragma experimental ABIEncoderV2;
 
 import '@nomiclabs/buidler/console.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/utils/Pausable.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol';
+import '@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol';
+import '@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol';
 import './interfaces/IAave.sol';
 import './interfaces/IDai.sol';
 import './interfaces/IRealitio.sol';
@@ -14,7 +15,7 @@ import './Token.sol';
 
 /// @title The MagicBet market instance
 /// @notice This contract is the framework of each new market
-contract MBMarket is Ownable, Pausable, ReentrancyGuard {
+contract MBMarket is Initializable, OwnableUpgradeSafe, PausableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     using SafeMath for uint256;
 
     enum States {WAITING, OPEN, LOCKED, WITHDRAW}
@@ -25,7 +26,6 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     uint256 public constant UNRESOLVED_OUTCOME_RESULT = type(uint256).max;
     uint256 public constant ORACLE_TIMEOUT_TIME = 4 weeks;
-    bool private isInitialized = false;
 
     //////// Externals ////////
     Dai public dai;
@@ -70,9 +70,8 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         address _arbitrator,
         string memory _realitioQuestion,
         string[] memory _outcomeNamesArray
-    ) public {
-        require(!isInitialized, 'Contract already initialized.');
-        isInitialized = true;
+    ) public initializer {
+        __Ownable_init();
 
         winningOutcome = UNRESOLVED_OUTCOME_RESULT;
 
