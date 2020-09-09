@@ -46,9 +46,11 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
     //////// Betting variables ////////
     mapping(address => mapping(uint256 => uint256)) public userBetAmount;
+    mapping(address => mapping(uint256 => uint256)) public userFlowBetAmount;
     mapping(uint256 => uint256) public totalBetsPerOutcome;
 
     uint256 public totalBets; // equivalent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
+    uint256 public totalFlowBets; // equivalent to 'max bets' goes up with each new bet but does not go down as winnings are withdrawn
     uint256 public betsWithdrawn; // totalBets less - betsWithdrawn should always be equal to outstanding bets
     uint256 public totalSponsoredMoney; // additional sponsored money that cannot win
     mapping(address => uint256) public sponsoredMoney;
@@ -141,14 +143,31 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
         aaveLendingPool.deposit(address(dai), totalBets, 0);
     }
 
-    function placeBet(uint256 _outcome, uint256 _daiAmount)
+    function placeBetWithExistingFlow(uint256 _outcome, uint256 _daiAmount)
         external
-        payable
         checkState(States.OPEN)
         whenNotPaused
         nonReentrant
     {
+        userFlowBetAmount[msg.sender][_outcome] += _daiAmount; // cannot overflow
+        totalFlowBets += _daiAmount; // cannot overflow
+        userBetAmount[msg.sender][_outcome] += _daiAmount; // cannot overflow
+        totalBetsPerOutcome[_outcome] += _daiAmount; // cannot overflow
+
+        emit PlacedBet(msg.sender, _outcome, _daiAmount);
+    }
+
+    function placeBet(
+        uint256 _outcome,
+        uint256 _daiAmount,
+        bool _isFlowBet
+    ) external payable checkState(States.OPEN) whenNotPaused nonReentrant {
         require(dai.transferFrom(msg.sender, address(this), _daiAmount), 'Cash transfer failed');
+
+        if (_isFlowBet) {
+            userFlowBetAmount[msg.sender][_outcome] += _daiAmount; // cannot overflow
+            totalFlowBets += _daiAmount; // cannot overflow
+        }
 
         userBetAmount[msg.sender][_outcome] += _daiAmount; // cannot overflow
         totalBetsPerOutcome[_outcome] += _daiAmount; // cannot overflow
@@ -161,8 +180,9 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
         winningOutcome = uint256(realitio.resultFor(questionId));
         uint256 totalATokens = aToken.balanceOf(address(this));
+        uint256 redeemAmount = totalATokens.sub(totalFlowBets);
 
-        aToken.redeem(totalATokens);
+        aToken.redeem(redeemAmount);
         totalInterest = totalATokens.sub(totalBets);
     }
 
@@ -209,6 +229,7 @@ contract MBMarket is Ownable, Pausable, ReentrancyGuard {
 
         for (uint256 i = 0; i < numberOfOutcomes; i++) {
             _userBetsAllOutcomes += userBetAmount[msg.sender][i]; // cannot overflow
+            _userBetsAllOutcomes -= userFlowBetAmount[msg.sender][i]; // cannot underflow
         }
         return _userBetsAllOutcomes;
     }
